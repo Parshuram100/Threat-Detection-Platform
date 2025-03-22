@@ -10,20 +10,19 @@ A comprehensive network security platform built with Django that provides real-t
    - Interactive traffic visualization
    - Source/destination IP tracking
    - Protocol and port monitoring
+   - Report Genetating 
+   - Logs Download (JSON, XML)
 
 2. **Anomaly Detection**
    - AI-driven threat detection
-   - Real-time anomaly analysis
-   - Severity-based threat classification
    - Threat visualization and statistics
-   - Threat resolution tracking
-
+   - Report Generating 
+  
 3. **Security Tools**
-   - Port scanning capabilities
-   - PCAP file analysis
-   - Network traffic analysis
-   - Security report generation
-   - Scan history tracking
+   - Nmap 
+   - Traceroute 
+   - Whois
+   - DNS Lookup
 
 ## Tech Stack
 
@@ -31,7 +30,7 @@ A comprehensive network security platform built with Django that provides real-t
 - Frontend: HTML, CSS, JavaScript, Chart.js
 - Networking: Scapy
 - AI/ML: scikit-learn
-- Database: SQLite (default), PostgreSQL (recommended)
+- Database: SQLite , MYsql
 - WebSocket: Django Channels
 
 ## Prerequisites
