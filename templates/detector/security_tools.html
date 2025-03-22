@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Security Tools</h2>
+            <p class="text-muted">Network scanning and analysis tools</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Port Scanner -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Port Scanner</h5>
+                    <form id="portScanForm">
+                        <div class="mb-3">
+                            <label for="targetHost" class="form-label">Target Host</label>
+                            <input type="text" class="form-control" id="targetHost" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="portRange" class="form-label">Port Range</label>
+                            <input type="text" class="form-control" id="portRange" placeholder="e.g., 1-1024" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Start Scan</button>
+                    </form>
+                    <div id="portScanResults" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PCAP Analysis -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">PCAP Analysis</h5>
+                    <form id="pcapUploadForm">
+                        <div class="mb-3">
+                            <label for="pcapFile" class="form-label">Upload PCAP File</label>
+                            <input type="file" class="form-control" id="pcapFile" accept=".pcap" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Analyze PCAP</button>
+                    </form>
+                    <div id="pcapAnalysisResults" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Scans</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Target</th>
+                                    <th>Status</th>
+                                    <th>Results</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scan in recent_scans %}
+                                <tr>
+                                    <td>{{ scan.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                    <td>{{ scan.get_scan_type_display }}</td>
+                                    <td>{{ scan.target }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if scan.status == 'completed' %}success
+                                                              {% elif scan.status == 'running' %}warning
+                                                              {% else %}danger{% endif %}">
+                                            {{ scan.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if scan.results %}
+                                        <button class="btn btn-sm btn-info view-results" data-scan-id="{{ scan.id }}">
+                                            View Results
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan Results Modal -->
+<div class="modal fade" id="scanResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="scanResultsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Port Scanner Form
+    document.getElementById('portScanForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const targetHost = document.getElementById('targetHost').value;
+        const portRange = document.getElementById('portRange').value;
+
+        fetch('/api/run-scan/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                scan_type: 'PORT',
+                target: targetHost,
+                port_range: portRange
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('portScanResults').innerHTML = `
+                    <div class="alert alert-info">
+                        Scan started. Scan ID: ${data.scan_id}
+                    </div>
+                `;
+            } else {
+                document.getElementById('portScanResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        Error: ${data.message}
+                    </div>
+                `;
+            }
+        });
+    });
+
+    // PCAP Upload Form
+    document.getElementById('pcapUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const pcapFile = document.getElementById('pcapFile').files[0];
+        const formData = new FormData();
+        formData.append('pcap_file', pcapFile);
+
+        fetch('/api/upload-pcap/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('pcapAnalysisResults').innerHTML = `
+                    <div class="alert alert-info">
+                        PCAP analysis started. Scan ID: ${data.scan_id}
+                    </div>
+                `;
+            } else {
+                document.getElementById('pcapAnalysisResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        Error: ${data.message}
+                    </div>
+                `;
+            }
+        });
+    });
+
+    // View Scan Results
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('view-results')) {
+            const scanId = e.target.dataset.scanId;
+            showScanResults(scanId);
+        }
+    });
+
+    // Utility function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Function to show scan results in modal
+    function showScanResults(scanId) {
+        // Implement scan results display logic here
+        const modal = new bootstrap.Modal(document.getElementById('scanResultsModal'));
+        document.getElementById('scanResultsContent').innerHTML = 'Loading results...';
+        modal.show();
+    }
+</script>
+{% endblock %} 

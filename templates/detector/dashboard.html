@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="text-center mb-4">📡 Live Network Traffic Monitor</h1>
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <button class="btn btn-success btn-lg" onclick="startSniffing()">
+                    <i class="fas fa-play"></i> Start Monitoring
+                </button>
+                <button class="btn btn-danger btn-lg" onclick="stopSniffing()">
+                    <i class="fas fa-stop"></i> Stop Capture
+                </button>
+                <button class="btn btn-warning btn-lg" onclick="clearLogs()">
+                    <i class="fas fa-trash"></i> Clear Logs
+                </button>
+                <button class="btn btn-primary btn-lg" onclick="downloadLog()">
+                    <i class="fas fa-download"></i> Download Log
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Packets</h5>
+                    <h2 class="card-text" id="totalPackets">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">TCP Packets</h5>
+                    <h2 class="card-text" id="tcpPackets">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">UDP Packets</h5>
+                    <h2 class="card-text" id="udpPackets">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Other Packets</h5>
+                    <h2 class="card-text" id="otherPackets">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Section -->
+    <div class="error-section" id="errorSection" style="display: none;">
+        <div class="alert alert-danger">
+            <h3><i class="fas fa-exclamation-triangle"></i> Errors</h3>
+            <ul id="errorList" class="mb-0"></ul>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Packet Distribution</h4>
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Packet Rate Over Time</h4>
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Packet Size Distribution</h4>
+                    <canvas id="sizeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Top Source IPs</h4>
+                    <canvas id="sourceIPChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Packet Flow Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="card-title mb-0">Live Packet Flow</h4>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="filterPackets('all')">All</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="filterPackets('tcp')">TCP</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="filterPackets('udp')">UDP</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="filterPackets('threat')">Threats</button>
+                </div>
+            </div>
+            <div class="table-responsive packet-flow">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Time</th>
+                            <th>Source</th>
+                            <th>Src Port</th>
+                            <th>Destination</th>
+                            <th>Dst Port</th>
+                            <th>Protocol</th>
+                            <th>Length</th>
+                            <th>Flags</th>
+                            <th>Payload</th>
+                            <th>Threat</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packetTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Packet Details Modal -->
+<div class="modal fade" id="packetModal" tabindex="-1" aria-labelledby="packetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="packetModalLabel">Packet Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <div id="basicInfo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Protocol Details</h6>
+                        <div id="protocolInfo"></div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Raw Data</h6>
+                        <pre id="rawData" class="bg-light p-3 rounded"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // WebSocket connection for network traffic
+    const trafficSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/network_traffic/'
+    );
+
+    trafficSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'traffic_update') {
+            updateStats(data.data);
+            updateCharts(data.data);
+            addPacketToTable(data.data);
+        }
+    };
+
+    trafficSocket.onclose = function(e) {
+        console.error('Network traffic socket closed unexpectedly');
+        showError('WebSocket connection closed. Please refresh the page.');
+    };
+
+    trafficSocket.onerror = function(e) {
+        console.error('Network traffic socket error:', e);
+        showError('WebSocket error occurred. Please check console for details.');
+    };
+
+    // WebSocket connection for anomaly detection
+    const anomalySocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/anomaly_detection/'
+    );
+
+    anomalySocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'anomaly_detected') {
+            handleAnomalyAlert(data.alert);
+        }
+    };
+
+    anomalySocket.onclose = function(e) {
+        console.error('Anomaly detection socket closed unexpectedly');
+        showError('Anomaly detection WebSocket connection closed. Please refresh the page.');
+    };
+
+    anomalySocket.onerror = function(e) {
+        console.error('Anomaly detection socket error:', e);
+        showError('Anomaly detection WebSocket error occurred. Please check console for details.');
+    };
+
+    // Button state management
+    let isCapturing = false;
+
+    // Update button states
+    function updateButtonStates(capturing) {
+        isCapturing = capturing;
+        const startBtn = document.querySelector('button[onclick="startSniffing()"]');
+        const stopBtn = document.querySelector('button[onclick="stopSniffing()"]');
+        const clearBtn = document.querySelector('button[onclick="clearLogs()"]');
+        const downloadBtn = document.querySelector('button[onclick="downloadLog()"]');
+
+        startBtn.disabled = capturing;
+        stopBtn.disabled = !capturing;
+        clearBtn.disabled = capturing;
+        downloadBtn.disabled = capturing;
+
+        startBtn.innerHTML = capturing ? 
+            '<i class="fas fa-play"></i> Capturing...' : 
+            '<i class="fas fa-play"></i> Start Monitoring';
+        stopBtn.innerHTML = capturing ? 
+            '<i class="fas fa-stop"></i> Stop Capture' : 
+            '<i class="fas fa-stop"></i> Stopped';
+    }
+
+    // Show loading state
+    function showLoading(button) {
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        return originalText;
+    }
+
+    // Restore button state
+    function restoreButtonState(button, originalText) {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+
+    // Show success message
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // Show error message
+    function showError(message) {
+        const errorSection = document.getElementById("errorSection");
+        const errorList = document.getElementById("errorList");
+        errorSection.style.display = "block";
+        errorList.innerHTML += `<li>${new Date().toLocaleTimeString()} - ${message}</li>`;
+        
+        // Show alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    async function startSniffing() {
+        const button = document.querySelector('button[onclick="startSniffing()"]');
+        const originalText = showLoading(button);
+
+        try {
+            const response = await fetch("{% url 'detector:start_capture' %}", {
+                method: "POST",
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                updateButtonStates(true);
+                showSuccess('Packet capture started successfully');
+            } else {
+                throw new Error(data.error || 'Failed to start capture');
+            }
+        } catch (error) {
+            showError('Error starting capture: ' + error.message);
+            restoreButtonState(button, originalText);
+        }
+    }
+
+    async function stopSniffing() {
+        const button = document.querySelector('button[onclick="stopSniffing()"]');
+        const originalText = showLoading(button);
+
+        try {
+            const response = await fetch("{% url 'detector:stop_capture' %}", {
+                method: "POST",
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                updateButtonStates(false);
+                showSuccess('Packet capture stopped successfully');
+            } else {
+                throw new Error(data.error || 'Failed to stop capture');
+            }
+        } catch (error) {
+            showError('Error stopping capture: ' + error.message);
+            restoreButtonState(button, originalText);
+        }
+    }
+
+    function clearLogs() {
+        if (!confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+            return;
+        }
+
+        const button = document.querySelector('button[onclick="clearLogs()"]');
+        const originalText = showLoading(button);
+
+        try {
+            // Reset statistics
+            packetStats = {
+                total: 0,
+                tcp: 0,
+                udp: 0,
+                other: 0,
+                sourceIPs: {},
+                sizes: []
+            };
+
+            // Update UI
+            document.getElementById("totalPackets").textContent = "0";
+            document.getElementById("tcpPackets").textContent = "0";
+            document.getElementById("udpPackets").textContent = "0";
+            document.getElementById("otherPackets").textContent = "0";
+
+            // Reset charts
+            barChart.data.datasets[0].data = [0, 0, 0, 0];
+            barChart.update();
+
+            lineChart.data.labels = [];
+            lineChart.data.datasets.forEach(dataset => dataset.data = []);
+            lineChart.update();
+
+            sizeChart.data.labels = [];
+            sizeChart.data.datasets[0].data = [];
+            sizeChart.update();
+
+            sourceIPChart.data.labels = [];
+            sourceIPChart.data.datasets[0].data = [];
+            sourceIPChart.update();
+
+            // Clear table
+            document.getElementById("packetTable").innerHTML = "";
+
+            showSuccess('Logs cleared successfully');
+        } catch (error) {
+            showError('Failed to clear logs: ' + error.message);
+        } finally {
+            restoreButtonState(button, originalText);
+        }
+    }
+
+    async function downloadLog() {
+        const button = document.querySelector('button[onclick="downloadLog()"]');
+        const originalText = showLoading(button);
+
+        try {
+            const response = await fetch("{% url 'detector:download_log' %}", {
+                method: "GET",
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `network_traffic_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showSuccess('Log downloaded successfully');
+            } else {
+                throw new Error('Failed to download log');
+            }
+        } catch (error) {
+            showError('Failed to download log: ' + error.message);
+        } finally {
+            restoreButtonState(button, originalText);
+        }
+    }
+
+    // Packet statistics
+    let packetStats = {
+        total: 0,
+        tcp: 0,
+        udp: 0,
+        other: 0,
+        sourceIPs: {},
+        sizes: []
+    };
+
+    // Update statistics
+    function updateStats(packet) {
+        packetStats.total++;
+        document.getElementById("totalPackets").textContent = packetStats.total;
+
+        switch(packet.protocol) {
+            case "TCP":
+                packetStats.tcp++;
+                document.getElementById("tcpPackets").textContent = packetStats.tcp;
+                break;
+            case "UDP":
+                packetStats.udp++;
+                document.getElementById("udpPackets").textContent = packetStats.udp;
+                break;
+            default:
+                packetStats.other++;
+                document.getElementById("otherPackets").textContent = packetStats.other;
+        }
+
+        // Update source IP statistics
+        if (packet.source_ip) {
+            packetStats.sourceIPs[packet.source_ip] = (packetStats.sourceIPs[packet.source_ip] || 0) + 1;
+            updateSourceIPChart();
+        }
+
+        // Update size statistics
+        if (packet.packet_size) {
+            packetStats.sizes.push(packet.packet_size);
+            if (packetStats.sizes.length > 20) packetStats.sizes.shift();
+            updateSizeChart();
+        }
+    }
+
+    function updateSourceIPChart() {
+        const sortedIPs = Object.entries(packetStats.sourceIPs)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 10);
+
+        sourceIPChart.data.labels = sortedIPs.map(([ip]) => ip);
+        sourceIPChart.data.datasets[0].data = sortedIPs.map(([,count]) => count);
+        sourceIPChart.update();
+    }
+
+    function updateSizeChart() {
+        sizeChart.data.labels = packetStats.sizes.map((_, i) => i + 1);
+        sizeChart.data.datasets[0].data = packetStats.sizes;
+        sizeChart.update();
+    }
+
+    // Filter packets
+    function filterPackets(type) {
+        const rows = document.querySelectorAll("#packetTable tr");
+        rows.forEach(row => {
+            if (type === 'all') {
+                row.style.display = '';
+            } else if (type === 'tcp') {
+                row.style.display = row.querySelector('td:nth-child(6)').textContent === 'TCP' ? '' : 'none';
+            } else if (type === 'udp') {
+                row.style.display = row.querySelector('td:nth-child(6)').textContent === 'UDP' ? '' : 'none';
+            } else if (type === 'threat') {
+                row.style.display = row.classList.contains('threat-row') ? '' : 'none';
+            }
+        });
+    }
+
+    // Initialize charts
+    const barChart = new Chart(document.getElementById("barChart").getContext("2d"), {
+        type: "bar",
+        data: {
+            labels: ["TCP", "UDP", "ARP", "Other"],
+            datasets: [{
+                label: "Packet Count",
+                data: [0, 0, 0, 0],
+                backgroundColor: ["#007bff", "#ffc107", "#28a745", "#dc3545"]
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    const lineChart = new Chart(document.getElementById("lineChart").getContext("2d"), {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "TCP", data: [], borderColor: "#007bff", fill: false },
+                { label: "UDP", data: [], borderColor: "#ffc107", fill: false },
+                { label: "ARP", data: [], borderColor: "#28a745", fill: false },
+                { label: "Other", data: [], borderColor: "#dc3545", fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+
+    const sizeChart = new Chart(document.getElementById("sizeChart").getContext("2d"), {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Packet Size",
+                data: [],
+                borderColor: "#6c757d",
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    const sourceIPChart = new Chart(document.getElementById("sourceIPChart").getContext("2d"), {
+        type: "doughnut",
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    "#007bff", "#ffc107", "#28a745", "#dc3545", "#6c757d",
+                    "#17a2b8", "#fd7e14", "#e83e8c", "#20c997", "#0dcaf0"
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    function updateCharts(packet) {
+        // Update packet counts based on protocol
+        let counts = {
+            TCP: 0,
+            UDP: 0,
+            ARP: 0,
+            Other: 0
+        };
+        counts[packet.protocol] = 1;
+        
+        barChart.data.datasets[0].data = [counts.TCP, counts.UDP, counts.ARP, counts.Other];
+        barChart.update();
+
+        if (lineChart.data.labels.length > 20) {
+            lineChart.data.labels.shift();
+            lineChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        lineChart.data.labels.push(new Date().toLocaleTimeString());
+        lineChart.data.datasets[0].data.push(counts.TCP);
+        lineChart.data.datasets[1].data.push(counts.UDP);
+        lineChart.data.datasets[2].data.push(counts.ARP);
+        lineChart.data.datasets[3].data.push(counts.Other);
+        lineChart.update();
+
+        let packetFlow = document.querySelector(".packet-flow");
+        packetFlow.scrollTop = packetFlow.scrollHeight;
+    }
+
+    function addPacketToTable(packet) {
+        let rowClass = packet.threat ? "threat-row" : "";
+        
+        // Add new row to table
+        document.getElementById("packetTable").innerHTML += `
+            <tr class="${rowClass}">
+                <td>${new Date().toLocaleTimeString()}</td>
+                <td>${packet.source_ip || '-'}</td>
+                <td>${packet.source_port || '-'}</td>
+                <td>${packet.destination_ip || '-'}</td>
+                <td>${packet.destination_port || '-'}</td>
+                <td>${packet.protocol || '-'}</td>
+                <td>${packet.packet_size || '-'} bytes</td>
+                <td>${packet.flags || '-'}</td>
+                <td>${packet.payload_size || '-'} bytes</td>
+                <td>${packet.threat || 'None'}</td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="showDetails(${JSON.stringify(packet)})">
+                        <i class="fas fa-search"></i> Inspect
+                    </button>
+                </td>
+            </tr>`;
+
+        // Scroll to bottom
+        let packetFlow = document.querySelector(".packet-flow");
+        packetFlow.scrollTop = packetFlow.scrollHeight;
+    }
+
+    function showDetails(packet) {
+        document.getElementById("basicInfo").innerHTML = `
+            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+            <p><strong>Source IP:</strong> ${packet.source_ip || 'N/A'}</p>
+            <p><strong>Destination IP:</strong> ${packet.destination_ip || 'N/A'}</p>
+            <p><strong>Packet Size:</strong> ${packet.packet_size || 'N/A'} bytes</p>
+            <p><strong>Threat Level:</strong> ${packet.threat || 'None'}</p>
+        `;
+
+        document.getElementById("protocolInfo").innerHTML = `
+            <p><strong>Protocol:</strong> ${packet.protocol || 'N/A'}</p>
+            <p><strong>Source Port:</strong> ${packet.source_port || 'N/A'}</p>
+            <p><strong>Destination Port:</strong> ${packet.destination_port || 'N/A'}</p>
+            <p><strong>Flags:</strong> ${packet.flags || 'N/A'}</p>
+            <p><strong>Payload Size:</strong> ${packet.payload_size || 'N/A'} bytes</p>
+        `;
+
+        document.getElementById("rawData").textContent = JSON.stringify(packet, null, 2);
+
+        const modal = new bootstrap.Modal(document.getElementById("packetModal"));
+        modal.show();
+    }
+
+    // Utility function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %} 

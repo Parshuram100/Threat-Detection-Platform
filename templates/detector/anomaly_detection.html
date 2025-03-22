@@ -1,0 +1,1093 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="text-center mb-4">🔍 Network Anomaly Detection</h1>
+            
+            <!-- Model Upload Panel -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Model Upload</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Upload Model Files</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Model File (.pkl)</label>
+                                <input type="file" class="form-control" id="modelFile" accept=".pkl">
+                            </div>
+                            <button class="btn btn-primary" onclick="uploadModel()">
+                                <i class="fas fa-upload"></i> Upload Model
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Model Requirements</h6>
+                            <div class="alert alert-info">
+                                <ul class="mb-0">
+                                    <li>Model must be a trained Isolation Forest model</li>
+                                    <li>Model must be trained on network traffic features</li>
+                                    <li>File must be in .pkl format</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Information Panel -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Model Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Model Details</h6>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Model Type
+                                    <span id="modelType" class="badge bg-primary">Not Loaded</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Feature Count
+                                    <span id="featureCount" class="badge bg-primary">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Status
+                                    <span id="modelStatus" class="badge bg-secondary">Not Loaded</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Model Features</h6>
+                            <div id="modelFeatures" class="list-group">
+                                <!-- Features will be added here -->
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Supported Attack Types</h6>
+                            <div id="attackTypes" class="d-flex flex-wrap gap-2">
+                                <!-- Attack type badges will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-success" onclick="loadModel()">
+                                <i class="fas fa-brain"></i> Load Model
+                            </button>
+                            <button class="btn btn-danger" onclick="unloadModel()">
+                                <i class="fas fa-power-off"></i> Unload Model
+                            </button>
+                            <button class="btn btn-info" onclick="analyzeModel()">
+                                <i class="fas fa-microscope"></i> Analyze Model
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suricata Configuration Panel -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Suricata Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Installation Status</h6>
+                            <div class="alert alert-info">
+                                <strong>Windows:</strong> Download and install from 
+                                <a href="https://suricata.io/download/" target="_blank">official website</a>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Linux:</strong> Run <code>sudo apt-get install suricata</code>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Suricata Path</label>
+                                <input type="text" class="form-control" id="suricataPath" 
+                                       value="C:\Program Files\Suricata\suricata.exe" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Rule Configuration</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Rules Directory</label>
+                                <input type="text" class="form-control" id="rulesPath" 
+                                       value="C:\Program Files\Suricata\rules" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Configuration File</label>
+                                <input type="text" class="form-control" id="configPath" 
+                                       value="C:\Program Files\Suricata\suricata.yaml" readonly>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="emergingThreats" checked>
+                                <label class="form-check-label" for="emergingThreats">
+                                    Enable Emerging Threats
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="customRules" checked>
+                                <label class="form-check-label" for="customRules">
+                                    Enable Custom Rules
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-success" id="startSuricataBtn" onclick="startSuricata()">
+                                <i class="fas fa-play"></i> Start Suricata
+                            </button>
+                            <button class="btn btn-danger" id="stopSuricataBtn" onclick="stopSuricata()">
+                                <i class="fas fa-stop"></i> Stop Suricata
+                            </button>
+                            <button class="btn btn-info" id="testSuricataBtn" onclick="testSuricata()">
+                                <i class="fas fa-vial"></i> Test Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Controls -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Detection Controls</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="detectionThreshold">Detection Threshold</label>
+                                <input type="range" class="form-range" id="detectionThreshold" 
+                                    min="0" max="100" value="75">
+                                <span id="thresholdValue">0.75</span>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Detection Mode</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="detectionMode" 
+                                        id="modeML" value="ml" checked>
+                                    <label class="form-check-label" for="modeML">
+                                        ML Detection Only
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="detectionMode" 
+                                        id="modeSuricata" value="suricata">
+                                    <label class="form-check-label" for="modeSuricata">
+                                        Suricata Only
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="detectionMode" 
+                                        id="modeBoth" value="both">
+                                    <label class="form-check-label" for="modeBoth">
+                                        Both ML and Suricata
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Interface Selection</label>
+                                <select class="form-select" id="interfaceSelect">
+                                    <!-- Interfaces will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Capture Filter</label>
+                                <input type="text" class="form-control" id="captureFilter" 
+                                    placeholder="tcp or udp">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary btn-lg" onclick="startDetection()">
+                                <i class="fas fa-play-circle"></i> Start Detection
+                            </button>
+                            <button class="btn btn-danger btn-lg" onclick="stopDetection()">
+                                <i class="fas fa-stop-circle"></i> Stop Detection
+                            </button>
+                            <button class="btn btn-warning btn-lg" onclick="clearAlerts()">
+                                <i class="fas fa-trash"></i> Clear Alerts
+                            </button>
+                            <button class="btn btn-info btn-lg" onclick="exportResults()">
+                                <i class="fas fa-file-export"></i> Export Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Anomalies</h5>
+                    <h2 class="card-text" id="totalAnomalies">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">High Risk</h5>
+                    <h2 class="card-text" id="highRiskCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Medium Risk</h5>
+                    <h2 class="card-text" id="mediumRiskCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Low Risk</h5>
+                    <h2 class="card-text" id="lowRiskCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Anomaly Distribution</h5>
+                    <canvas id="anomalyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Detection Timeline</h5>
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Live Alerts</h5>
+                <div class="btn-group">
+                    <button class="btn btn-light btn-sm" onclick="filterAlerts('all')">All</button>
+                    <button class="btn btn-light btn-sm" onclick="filterAlerts('high')">High</button>
+                    <button class="btn btn-light btn-sm" onclick="filterAlerts('medium')">Medium</button>
+                    <button class="btn btn-light btn-sm" onclick="filterAlerts('low')">Low</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Time</th>
+                            <th>Source IP</th>
+                            <th>Destination IP</th>
+                            <th>Alert Type</th>
+                            <th>Risk Level</th>
+                            <th>Confidence</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Details Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Alert Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <div id="alertBasicInfo"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Technical Details</h6>
+                        <div id="alertTechInfo"></div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Raw Data</h6>
+                        <pre id="alertRawData" class="bg-light p-3 rounded"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Browser Modal -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fileBrowserModalLabel">Browse for Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Current Path Display -->
+                <div class="alert alert-info mb-3">
+                    <strong>Current Path:</strong> <span id="currentPath"></span>
+                </div>
+                
+                <!-- Breadcrumb Navigation -->
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb" id="pathBreadcrumb">
+                        <li class="breadcrumb-item"><a href="#" data-path="">Root</a></li>
+                    </ol>
+                </nav>
+
+                <!-- File List -->
+                <div class="list-group" id="fileList">
+                    <!-- Items will be added here dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="selectPathBtn" onclick="selectCurrentPath()">
+                    Select Current Path
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // WebSocket connection
+    const socket = new WebSocket(
+        'ws://' + window.location.host + '/ws/anomaly-detection/'
+    );
+
+    // Chart initialization
+    const anomalyChart = new Chart(document.getElementById('anomalyChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    const timelineChart = new Chart(document.getElementById('timelineChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Anomalies',
+                data: [],
+                borderColor: '#dc3545',
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute'
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Detection state
+    let isDetecting = false;
+    let modelLoaded = false;
+    let suricataRunning = false;
+
+    // Update threshold display
+    document.getElementById('detectionThreshold').addEventListener('input', function(e) {
+        document.getElementById('thresholdValue').textContent = (e.target.value / 100).toFixed(2);
+    });
+
+    async function loadModel() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+        try {
+            const response = await fetch("{% url 'detector:load_model' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (data.status) {
+                // Update model information
+                document.getElementById('modelType').textContent = data.model_type;
+                document.getElementById('featureCount').textContent = data.feature_count;
+                document.getElementById('modelStatus').className = 'badge bg-success';
+                document.getElementById('modelStatus').textContent = 'Loaded';
+
+                // Update attack types
+                const attackTypesDiv = document.getElementById('attackTypes');
+                attackTypesDiv.innerHTML = '';
+                data.attack_types.forEach(type => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-secondary';
+                    badge.textContent = type;
+                    attackTypesDiv.appendChild(badge);
+                });
+
+                showSuccess('Model loaded successfully');
+            } else {
+                throw new Error(data.error || 'Failed to load model');
+            }
+        } catch (error) {
+            showError('Error loading model: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    async function startSuricata() {
+        const button = document.getElementById('startSuricataBtn');
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+
+        try {
+            const response = await fetch("{% url 'detector:start_suricata' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    suricata_path: document.getElementById('suricataPath').value,
+                    rules_path: document.getElementById('rulesPath').value,
+                    config_path: document.getElementById('configPath').value,
+                    emerging_threats: document.getElementById('emergingThreats').checked,
+                    custom_rules: document.getElementById('customRules').checked
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                suricataRunning = true;
+                showSuccess('Suricata started successfully');
+                button.classList.remove('btn-success');
+                button.classList.add('btn-secondary');
+                document.getElementById('stopSuricataBtn').disabled = false;
+            } else {
+                throw new Error(data.message || 'Failed to start Suricata');
+            }
+        } catch (error) {
+            showError('Error starting Suricata: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    async function startDetection() {
+        if (!modelLoaded) {
+            showError('Please load the model first');
+            return;
+        }
+        if (!suricataRunning) {
+            showError('Please start Suricata first');
+            return;
+        }
+
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+
+        try {
+            const response = await fetch("{% url 'detector:start_detection' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    threshold: document.getElementById('detectionThreshold').value / 100
+                })
+            });
+
+            if (response.ok) {
+                isDetecting = true;
+                showSuccess('Detection started successfully');
+            } else {
+                throw new Error('Failed to start detection');
+            }
+        } catch (error) {
+            showError('Error starting detection: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    // WebSocket message handling
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'anomaly_detected') {
+            updateStats(data.alert);
+            updateCharts(data.alert);
+            addAlertToTable(data.alert);
+        }
+    };
+
+    function updateStats(alert) {
+        document.getElementById('totalAnomalies').textContent = 
+            parseInt(document.getElementById('totalAnomalies').textContent) + 1;
+
+        const riskCountElement = document.getElementById(alert.risk_level.toLowerCase() + 'RiskCount');
+        riskCountElement.textContent = parseInt(riskCountElement.textContent) + 1;
+    }
+
+    function updateCharts(alert) {
+        // Update anomaly distribution chart
+        const riskIndex = alert.risk_level === 'HIGH' ? 0 : 
+                         alert.risk_level === 'MEDIUM' ? 1 : 2;
+        anomalyChart.data.datasets[0].data[riskIndex]++;
+        anomalyChart.update();
+
+        // Update timeline chart
+        if (timelineChart.data.labels.length > 50) {
+            timelineChart.data.labels.shift();
+            timelineChart.data.datasets[0].data.shift();
+        }
+        timelineChart.data.labels.push(new Date());
+        timelineChart.data.datasets[0].data.push(1);
+        timelineChart.update();
+    }
+
+    function addAlertToTable(alert) {
+        const tbody = document.getElementById('alertsTable');
+        const row = document.createElement('tr');
+        row.className = alert.risk_level.toLowerCase() + '-risk';
+        row.innerHTML = `
+            <td>${new Date().toLocaleTimeString()}</td>
+            <td>${alert.source_ip}</td>
+            <td>${alert.destination_ip}</td>
+            <td>${alert.alert_type}</td>
+            <td><span class="badge bg-${alert.risk_level === 'HIGH' ? 'danger' : 
+                                      alert.risk_level === 'MEDIUM' ? 'warning' : 'info'}">
+                ${alert.risk_level}</span></td>
+            <td>${(alert.confidence * 100).toFixed(2)}%</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick='showAlertDetails(${JSON.stringify(alert)})'>
+                    <i class="fas fa-search"></i>
+                </button>
+            </td>
+        `;
+        tbody.insertBefore(row, tbody.firstChild);
+    }
+
+    function showAlertDetails(alert) {
+        document.getElementById('alertBasicInfo').innerHTML = `
+            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+            <p><strong>Source IP:</strong> ${alert.source_ip}</p>
+            <p><strong>Destination IP:</strong> ${alert.destination_ip}</p>
+            <p><strong>Risk Level:</strong> ${alert.risk_level}</p>
+            <p><strong>Confidence:</strong> ${(alert.confidence * 100).toFixed(2)}%</p>
+        `;
+
+        document.getElementById('alertTechInfo').innerHTML = `
+            <p><strong>Alert Type:</strong> ${alert.alert_type}</p>
+            <p><strong>Protocol:</strong> ${alert.protocol}</p>
+            <p><strong>Source Port:</strong> ${alert.source_port}</p>
+            <p><strong>Destination Port:</strong> ${alert.destination_port}</p>
+            <p><strong>Signature ID:</strong> ${alert.signature_id}</p>
+        `;
+
+        document.getElementById('alertRawData').textContent = JSON.stringify(alert, null, 2);
+
+        const modal = new bootstrap.Modal(document.getElementById('alertModal'));
+        modal.show();
+    }
+
+    function filterAlerts(type) {
+        const rows = document.querySelectorAll('#alertsTable tr');
+        rows.forEach(row => {
+            if (type === 'all') {
+                row.style.display = '';
+            } else {
+                row.style.display = row.classList.contains(type + '-risk') ? '' : 'none';
+            }
+        });
+    }
+
+    // Show success message
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // Show error message
+    function showError(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function testSuricata() {
+        const button = document.getElementById('testSuricataBtn');
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+
+        try {
+            const response = await fetch("{% url 'detector:test_suricata' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    suricata_path: document.getElementById('suricataPath').value,
+                    rules_path: document.getElementById('rulesPath').value,
+                    config_path: document.getElementById('configPath').value
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                showSuccess('Suricata configuration test passed successfully' + 
+                    (data.details ? `<br><pre>${JSON.stringify(data.details, null, 2)}</pre>` : ''));
+            } else {
+                throw new Error(data.message || 'Configuration test failed');
+            }
+        } catch (error) {
+            showError('Error testing Suricata configuration: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    async function uploadModel() {
+        const modelFile = document.getElementById('modelFile').files[0];
+
+        if (!modelFile) {
+            showError('Please select a model file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('model_file', modelFile);
+
+        try {
+            const response = await fetch("{% url 'detector:upload_model' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                showSuccess('Model file uploaded successfully');
+                // Clear file input
+                document.getElementById('modelFile').value = '';
+            } else {
+                throw new Error(data.message || 'Failed to upload model file');
+            }
+        } catch (error) {
+            showError('Error uploading model: ' + error.message);
+        }
+    }
+
+    async function analyzeModel() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+        try {
+            const response = await fetch("{% url 'detector:analyze_model' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                // Update model features
+                const featuresDiv = document.getElementById('modelFeatures');
+                featuresDiv.innerHTML = '';
+                data.features.forEach(feature => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                    item.innerHTML = `
+                        ${feature.name}
+                        <span class="badge bg-info">${feature.importance.toFixed(3)}</span>
+                    `;
+                    featuresDiv.appendChild(item);
+                });
+
+                showSuccess('Model analysis completed');
+            } else {
+                throw new Error(data.message || 'Failed to analyze model');
+            }
+        } catch (error) {
+            showError('Error analyzing model: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    // File browser initialization
+    let fileBrowserModal = null;
+    let currentBrowsePath = '';
+    let currentTargetInput = '';
+    let currentBrowseType = '';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize modal instance
+        fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        
+        // Initialize browse buttons with proper event listeners
+        document.querySelectorAll('.browse-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const inputId = this.getAttribute('data-input');
+                const type = this.getAttribute('data-type');
+                if (inputId && type) {
+                    openFileBrowser(inputId, type);
+                }
+            });
+        });
+
+        // Set default paths based on OS detection
+        setDefaultPaths();
+    });
+
+    function setDefaultPaths() {
+        const isWindows = navigator.platform.toLowerCase().includes('win');
+        if (isWindows) {
+            document.getElementById('suricataPath').value = 'C:\\Program Files\\Suricata\\suricata.exe';
+            document.getElementById('rulesPath').value = 'C:\\Program Files\\Suricata\\rules';
+            document.getElementById('configPath').value = 'C:\\Program Files\\Suricata\\suricata.yaml';
+        } else {
+            document.getElementById('suricataPath').value = '/usr/bin/suricata';
+            document.getElementById('rulesPath').value = '/etc/suricata/rules';
+            document.getElementById('configPath').value = '/etc/suricata/suricata.yaml';
+        }
+    }
+
+    function openFileBrowser(inputId, type) {
+        try {
+            currentTargetInput = inputId;
+            currentBrowseType = type;
+            
+            // Get the current value from the input field or use root
+            const currentPath = document.getElementById(inputId).value || '';
+            currentBrowsePath = currentPath;
+
+            // Show loading state
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            // Show the modal
+            fileBrowserModal.show();
+
+            // Load the directory contents
+            loadDirectory(currentPath || null);
+        } catch (error) {
+            console.error('Error opening file browser:', error);
+            showError('Error opening file browser: ' + error.message);
+        }
+    }
+
+    async function loadDirectory(path) {
+        try {
+            const isWindows = navigator.platform.toLowerCase().includes('win');
+            const requestPath = path || '';
+
+            const response = await fetch("{% url 'detector:browse_directories' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: requestPath,
+                    type: currentBrowseType,
+                    is_windows: isWindows
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                currentBrowsePath = data.current_path || '';
+                updateBreadcrumb(data.current_path, isWindows);
+                updateFileList(data.items, isWindows);
+            } else {
+                throw new Error(data.message || 'Failed to load directory');
+            }
+        } catch (error) {
+            console.error('Error loading directory:', error);
+            showError('Error loading directory: ' + error.message);
+            
+            // Clear the file list and show error
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = `<div class="alert alert-danger">Error loading directory: ${error.message}</div>`;
+        }
+    }
+
+    function updateBreadcrumb(path, isWindows) {
+        const breadcrumb = document.getElementById('pathBreadcrumb');
+        breadcrumb.innerHTML = '';
+
+        // Add root/drives item
+        const rootItem = document.createElement('li');
+        rootItem.className = 'breadcrumb-item';
+        rootItem.innerHTML = `<a href="#" data-path="">${isWindows ? 'Drives' : 'Root'}</a>`;
+        rootItem.querySelector('a').addEventListener('click', (e) => {
+            e.preventDefault();
+            loadDirectory(null);
+        });
+        breadcrumb.appendChild(rootItem);
+
+        if (path) {
+            const separator = isWindows ? '\\' : '/';
+            const parts = path.split(separator).filter(Boolean);
+            let currentPath = '';
+
+            parts.forEach((part, index) => {
+                currentPath += (currentPath ? separator : '') + part;
+                const item = document.createElement('li');
+                item.className = 'breadcrumb-item';
+
+                if (index === parts.length - 1) {
+                    item.classList.add('active');
+                    item.textContent = part;
+                } else {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = part;
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadDirectory(currentPath);
+                    });
+                    item.appendChild(link);
+                }
+                breadcrumb.appendChild(item);
+            });
+        }
+    }
+
+    function updateFileList(items, isWindows) {
+        const fileList = document.getElementById('fileList');
+        const currentPathDisplay = document.getElementById('currentPath');
+        fileList.innerHTML = '';
+        
+        // Update current path display
+        currentPathDisplay.textContent = currentBrowsePath || (isWindows ? 'Drives' : '/');
+
+        // Add parent directory option if not at root
+        if (currentBrowsePath) {
+            const parentItem = document.createElement('a');
+            parentItem.className = 'list-group-item list-group-item-action';
+            parentItem.href = '#';
+            parentItem.innerHTML = '<i class="fas fa-level-up-alt me-2"></i> Parent Directory';
+            parentItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                const separator = isWindows ? '\\' : '/';
+                const parentPath = currentBrowsePath.split(separator).slice(0, -1).join(separator);
+                loadDirectory(parentPath || null);
+            });
+            fileList.appendChild(parentItem);
+        }
+
+        // Sort items: drives first, then directories, then files
+        const sortedItems = items.sort((a, b) => {
+            if (a.type === 'drive' && b.type !== 'drive') return -1;
+            if (a.type !== 'drive' && b.type === 'drive') return 1;
+            if (a.type === 'dir' && b.type === 'file') return -1;
+            if (a.type === 'file' && b.type === 'dir') return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        sortedItems.forEach(item => {
+            const listItem = document.createElement('a');
+            listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            listItem.href = '#';
+
+            // Set appropriate icon
+            const icon = item.type === 'dir' ? 'fa-folder' :
+                        item.type === 'drive' ? 'fa-hdd' :
+                        item.type === 'file' ? 'fa-file' : 'fa-question';
+
+            // Create item content with icon and name
+            const itemContent = document.createElement('div');
+            itemContent.innerHTML = `<i class="fas ${icon} me-2"></i> ${item.name}`;
+            listItem.appendChild(itemContent);
+
+            // Add type badge
+            const badge = document.createElement('span');
+            badge.className = `badge ${item.type === 'dir' ? 'bg-primary' : 
+                                     item.type === 'drive' ? 'bg-success' : 
+                                     'bg-secondary'}`;
+            badge.textContent = item.type.toUpperCase();
+            listItem.appendChild(badge);
+
+            if (item.type === 'dir' || item.type === 'drive') {
+                listItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadDirectory(item.path);
+                });
+            } else {
+                // Validate file type based on browse type
+                let isValidFile = true;
+                if (currentBrowseType === 'executable') {
+                    isValidFile = item.name.toLowerCase().endsWith('.exe') || 
+                                item.name.toLowerCase() === 'suricata';
+                } else if (currentBrowseType === 'config') {
+                    isValidFile = item.name.toLowerCase().endsWith('.yaml') || 
+                                item.name.toLowerCase().endsWith('.yml');
+                }
+
+                if (isValidFile) {
+                    listItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        selectPath(item.path);
+                    });
+                } else {
+                    listItem.classList.add('disabled');
+                    listItem.style.opacity = '0.5';
+                    listItem.title = 'Invalid file type';
+                }
+            }
+
+            fileList.appendChild(listItem);
+        });
+
+        // Update select button visibility
+        const selectPathBtn = document.getElementById('selectPathBtn');
+        selectPathBtn.style.display = currentBrowseType === 'directory' ? '' : 'none';
+    }
+
+    function selectPath(path) {
+        try {
+            const input = document.getElementById(currentTargetInput);
+            if (input) {
+                input.value = path;
+                fileBrowserModal.hide();
+                
+                // Trigger change event
+                const event = new Event('change');
+                input.dispatchEvent(event);
+            }
+        } catch (error) {
+            console.error('Error selecting path:', error);
+            showError('Error selecting path: ' + error.message);
+        }
+    }
+
+    function selectCurrentPath() {
+        try {
+            if (currentBrowseType === 'directory') {
+                const input = document.getElementById(currentTargetInput);
+                if (input) {
+                    input.value = currentBrowsePath;
+                    fileBrowserModal.hide();
+                    
+                    // Trigger change event
+                    const event = new Event('change');
+                    input.dispatchEvent(event);
+                }
+            } else {
+                showError('Please select a specific file');
+            }
+        } catch (error) {
+            console.error('Error selecting current path:', error);
+            showError('Error selecting current path: ' + error.message);
+        }
+    }
+</script>
+{% endblock %} 
