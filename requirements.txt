@@ -1,0 +1,11 @@
+Django==5.0.2
+djangorestframework==3.14.0
+channels==3.0.5
+scapy==2.5.0
+pandas==2.2.0
+numpy>=1.26.0,<2.0.0
+scikit-learn==1.4.0
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+channels-redis==4.1.0
+daphne>=3.0,<4.0 
