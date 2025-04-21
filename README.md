@@ -31,7 +31,7 @@ A comprehensive network security platform built with Django that provides real-t
 - Frontend: HTML, CSS, JavaScript, Chart.js
 - Networking: Scapy
 - AI/ML: scikit-learn
-- Database: SQLite (default), PostgreSQL (recommended)
+- Database: SQLite (default),
 - WebSocket: Django Channels
 
 ## Prerequisites
