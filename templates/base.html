@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Network Threat Detector{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+            --header-height: 60px;
+            --primary-dark: #1a1a2e;
+            --secondary-dark: #16213e;
+            --accent-blue: #0f3460;
+            --accent-teal: #2dd4bf;
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --accent-purple: #9b59b6;
+            --text-light: #ecf0f1;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            transition: background-color var(--transition-speed) ease;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(to bottom, var(--primary-dark), var(--secondary-dark));
+            color: white;
+            padding: 1rem;
+            z-index: 1000;
+            transition: all var(--transition-speed) ease;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-header {
+            padding: 1rem 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo-icon {
+            font-size: 1.8rem;
+            color: var(--accent-teal);
+            margin-right: 0.5rem;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--text-light);
+            transition: all var(--transition-speed) ease;
+            white-space: nowrap;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3 {
+            opacity: 0;
+            transform: translateX(-20px);
+            display: none;
+        }
+        
+        .sidebar.collapsed .logo-icon {
+            margin-right: 0;
+            font-size: 2rem;
+        }
+        
+        .collapse-toggle {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: all var(--transition-speed) ease;
+            z-index: 2;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .collapse-toggle:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .sidebar.collapsed .collapse-toggle {
+            right: 50%;
+            transform: translateY(-50%) translateX(50%) rotate(180deg);
+        }
+
+        .nav-link {
+            color: var(--text-light);
+            padding: 0.8rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--accent-teal);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(to right, var(--accent-blue), rgba(15, 52, 96, 0.7));
+            color: white;
+            box-shadow: 0 4px 10px rgba(15, 52, 96, 0.3);
+        }
+        
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: var(--accent-teal);
+            border-radius: 0 2px 2px 0;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+            transform: translateX(-20px);
+            display: none;
+        }
+        
+        .sidebar.collapsed .nav-link {
+            text-align: center;
+            padding: 1rem 0;
+        }
+        
+        .sidebar.collapsed .nav-link i {
+            margin-right: 0;
+            font-size: 1.3rem;
+            width: 100%;
+        }
+        
+        /* Tooltip for collapsed sidebar */
+        .nav-tooltip {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--primary-dark);
+            color: var(--text-light);
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed) ease;
+            white-space: nowrap;
+            z-index: 1001;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+        }
+        
+        .nav-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent var(--primary-dark) transparent transparent;
+        }
+        
+        .sidebar.collapsed .nav-link:hover .nav-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-50%) translateX(10px);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+            transition: margin-left var(--transition-speed) ease;
+        }
+        
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        /* Dashboard Specific Styles */
+        .stats-section {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .error-section {
+            background-color: #ffcccc;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .packet-flow {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+        }
+
+        .threat-row {
+            background-color: #ffcccc;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .toggle-sidebar {
+                display: block;
+            }
+            
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Toggle Button */
+        .toggle-sidebar {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: none;
+            border: none;
+            color: var(--primary-dark);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .toggle-sidebar:hover {
+            transform: scale(1.1);
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .sidebar-footer .user-info {
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .sidebar-footer .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            font-weight: 600;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .sidebar-footer .btn {
+            width: 100%;
+            margin: 0.2rem 0;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .sidebar-footer .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .sidebar.collapsed .sidebar-footer {
+            padding: 0.5rem;
+        }
+        
+        .sidebar.collapsed .sidebar-footer .user-info span,
+        .sidebar.collapsed .auth-buttons a span,
+        .sidebar.collapsed .logout-btn span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-footer .user-avatar {
+            margin-right: 0;
+            margin: 0 auto 0.5rem;
+        }
+        
+        .sidebar.collapsed .auth-buttons {
+            gap: 0.3rem;
+        }
+        
+        .sidebar.collapsed .auth-buttons .btn i {
+            margin-right: 0;
+        }
+        
+        /* Alert messages */
+        .alert-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            max-width: 350px;
+        }
+        
+        .alert {
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Logout form styling */
+        .logout-form {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .logout-btn {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .logout-btn i {
+            margin-right: 0.5rem;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        /* Menu Item Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .nav-link:hover i {
+            animation: pulse 1s infinite;
+        }
+        
+        .nav-link.active i {
+            transform: scale(1.2);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar Toggle Button -->
+    <button class="toggle-sidebar" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <i class="fas fa-shield-alt logo-icon"></i>
+                <h3>Threat Detector Platform</h3>
+            </div>
+            <button class="collapse-toggle" id="collapseToggle">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'detector:dashboard' %}">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+                <div class="nav-tooltip">Dashboard</div>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'anomaly_detection' %}active{% endif %}" href="{% url 'detector:anomaly_detection' %}">
+                <i class="fas fa-shield-alt"></i>
+                <span>Anomaly Detection</span>
+                <div class="nav-tooltip">Anomaly Detection</div>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'ai_security_analyst' %}active{% endif %}" href="{% url 'detector:ai_security_analyst' %}">
+                <i class="fas fa-robot"></i>
+                <span>AI Security Analyst</span>
+                <div class="nav-tooltip">AI Security Analyst</div>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'malware_analysis' %}active{% endif %}" href="{% url 'detector:malware_analysis' %}">
+                <i class="fas fa-virus"></i>
+                <span>Malware Analysis</span>
+                <div class="nav-tooltip">Malware Analysis</div>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            {% if user.is_authenticated %}
+                <div class="user-info">
+                    <div class="user-avatar">
+                        {{ user.username.0|upper }}
+                    </div>
+                    <span>{{ user.username }}</span>
+                </div>
+                <div class="auth-buttons">
+                    <a href="{% url 'profile' %}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-user-circle"></i> <span>Profile</span>
+                    </a>
+                    <form method="post" action="{% url 'logout' %}" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <div class="auth-buttons">
+                    <a href="{% url 'login' %}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-sign-in-alt"></i> <span>Login</span>
+                    </a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-user-plus"></i> <span>Register</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Alert Messages -->
+        {% if messages %}
+        <div class="alert-container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sidebar Toggle for Mobile
+        document.getElementById('toggleSidebar').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggleSidebar');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggleButton.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+        
+        // Collapse/Expand Sidebar
+        document.getElementById('collapseToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+        
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Add hover effect to nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(function(link) {
+                link.addEventListener('mouseenter', function() {
+                    if (!this.classList.contains('active')) {
+                        this.style.transform = 'translateX(5px)';
+                    }
+                });
+                
+                link.addEventListener('mouseleave', function() {
+                    if (!this.classList.contains('active')) {
+                        this.style.transform = 'translateX(0)';
+                    }
+                });
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

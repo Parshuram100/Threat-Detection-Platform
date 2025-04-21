@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Redirecting - Threat Detection Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-dark: #0d1117;
+        --secondary-dark: #161b22;
+        --border-dark: #30363d;
+        --accent-teal: #2dd4bf;
+        --accent-blue: #3b82f6;
+        --text-light: #f3f4f6;
+        --text-muted: #9ca3af;
+    }
+
+    .redirect-container {
+        max-width: 600px;
+        margin: 4rem auto;
+        text-align: center;
+    }
+
+    .redirect-card {
+        background: rgba(22, 27, 34, 0.8);
+        border: 1px solid var(--border-dark);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        padding: 2rem;
+    }
+
+    .redirect-title {
+        color: var(--accent-teal);
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .redirect-message {
+        color: var(--text-light);
+        margin-bottom: 2rem;
+    }
+
+    .redirect-spinner {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 2rem;
+        border: 5px solid rgba(45, 212, 191, 0.2);
+        border-top-color: var(--accent-teal);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .redirect-countdown {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--accent-blue);
+        margin-bottom: 1rem;
+    }
+
+    .redirect-btn {
+        background: linear-gradient(to right, var(--accent-teal), var(--accent-blue));
+        color: var(--text-light);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+    }
+
+    .redirect-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="redirect-container">
+    <div class="redirect-card">
+        <div class="redirect-spinner"></div>
+        <h2 class="redirect-title">Login Successful!</h2>
+        <p class="redirect-message">Welcome back, {{ user.username }}. You are now logged in.</p>
+        <div class="redirect-countdown" id="countdown">5</div>
+        <p class="redirect-message">Redirecting to dashboard in <span id="seconds">5</span> seconds...</p>
+        <a href="{% url 'detector:dashboard' %}" class="redirect-btn">Go to Dashboard Now</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown');
+        const secondsEl = document.getElementById('seconds');
+        
+        const interval = setInterval(function() {
+            seconds--;
+            countdownEl.textContent = seconds;
+            secondsEl.textContent = seconds;
+            
+            if (seconds <= 0) {
+                clearInterval(interval);
+                window.location.href = "{% url 'detector:dashboard' %}";
+            }
+        }, 1000);
+    });
+</script>
+{% endblock %}

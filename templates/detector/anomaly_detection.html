@@ -1,0 +1,1815 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Intrusion Detection System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+                        <div class="col-12">
+            <h2 class="mb-0"> Threat Detection System (signature and Anomlay Based) </h2>
+            <p class="text-muted">Real-time detection and analysis of network attacks</p>
+                </div>
+            </div>
+
+    <!-- Attack Types Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Supported Attack Types</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-shield-alt text-danger"></i>
+                                <span>DoS/DDoS</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-key text-warning"></i>
+                                <span>Brute Force (SSH/Login)</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-file-upload text-info"></i>
+                                <span>FTP Brute Force</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-database text-danger"></i>
+                                <span>SQL Injection</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-sitemap text-warning"></i>
+                                <span>Web Enumeration</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="attack-type mb-2">
+                                <i class="fas fa-search text-info"></i>
+                                <span>Port Scanning</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Detection Settings</h5>
+                </div>
+                <div class="card-body">
+                            <div class="form-group mb-3">
+                        <label for="detectionThreshold">Detection Sensitivity</label>
+                        <input type="range" class="form-range" id="detectionThreshold" min="0" max="100" value="75">
+                                <span id="thresholdValue">0.75</span>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Detection Mode</label>
+                                <div class="form-check">
+                            <input class="form-check-input" type="radio" name="detectionMode" id="modeSignature" value="signature" checked>
+                            <label class="form-check-label" for="modeSignature">
+                                Anomaly and Signature-based Detection
+                                    </label>
+                                </div>
+                       
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="startDetection()" id="startButton">
+                            <i class="fas fa-play"></i> Start Detection
+                            </button>
+                        <button class="btn btn-danger" onclick="stopDetection()" id="stopButton" disabled>
+                            <i class="fas fa-stop"></i> Stop Detection
+                            </button>
+                        <button class="btn btn-warning" onclick="clearAlerts()">
+                                <i class="fas fa-trash"></i> Clear Alerts
+                            </button>
+                        <button class="btn btn-info" onclick="exportReport()">
+                            <i class="fas fa-file-export"></i> Export Report
+                            </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traffic Visualization Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Traffic Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trafficChart" style="height: 400px !important;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Attack Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attackChart" style="height: 400px !important;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attacker Analysis Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Attack Sources</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attackerChart" style="height: 300px !important;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Attack Patterns</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="patternChart" style="height: 300px !important;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detected Attacks Section -->
+    <div class="row">
+        <div class="col-12">
+    <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Detected Attacks</h5>
+                <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterAttacks('all')">All</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="filterAttacks('dos')">DoS/DDoS</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filterAttacks('brute-force')">Brute Force</button>
+                        <button class="btn btn-sm btn-outline-info" onclick="filterAttacks('injection')">Injection</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="filterAttacks('scan')">Scanning</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                        <table class="table table-hover" id="attacksTable">
+                            <thead>
+                        <tr>
+                            <th>Time</th>
+                                    <th>Attack Type</th>
+                            <th>Source IP</th>
+                                    <th>Target</th>
+                            <th>Details</th>
+                                    <th>Confidence</th>
+                                    <th>Actions</th>
+                        </tr>
+                    </thead>
+                            <tbody id="attacksTableBody"></tbody>
+                </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container for alerts -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+<!-- Attack Details Modal -->
+<div class="modal fade" id="attackModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attack Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Time:</th>
+                                <td id="modalTime"></td>
+                            </tr>
+                            <tr>
+                                <th>Attack Type:</th>
+                                <td id="modalType"></td>
+                            </tr>
+                            <tr>
+                                <th>Source IP:</th>
+                                <td id="modalSource"></td>
+                            </tr>
+                            <tr>
+                                <th>Target:</th>
+                                <td id="modalTarget"></td>
+                            </tr>
+                            <tr>
+                                <th>Confidence:</th>
+                                <td id="modalConfidence"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Technical Details</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Protocol:</th>
+                                <td id="modalProtocol"></td>
+                            </tr>
+                            <tr>
+                                <th>Port:</th>
+                                <td id="modalPort"></td>
+                            </tr>
+                            <tr>
+                                <th>Packet Size:</th>
+                                <td id="modalSize"></td>
+                            </tr>
+                            <tr>
+                                <th>Flags:</th>
+                                <td id="modalFlags"></td>
+                            </tr>
+                            <tr>
+                                <th>Payload:</th>
+                                <td id="modalPayload"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Attack Pattern Analysis</h6>
+                        <div id="modalPattern"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="exportAttackDetails()">Export Details</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add network information display section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Network Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="network-info">
+                            <h6>Active Interface</h6>
+                            <p id="activeInterface">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="network-info">
+                            <h6>IP Address</h6>
+                            <p id="ipAddress">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="network-info">
+                            <h6>Network Status</h6>
+                            <p id="networkStatus">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="network-info">
+                            <h6>Detection Mode</h6>
+                            <p id="detectionMode">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Initialize charts
+let trafficChart, attackChart, attackerChart, patternChart;
+let isDetecting = false;
+let attackStats = {
+    dos: 0,
+    ddos: 0,
+    bruteForce: 0,
+    sqlInjection: 0,
+    webEnum: 0,
+    portScan: 0
+};
+
+// Global packet tracking
+const packetTracker = {
+    synPackets: {},
+    udpPackets: {},
+    icmpPackets: {},
+    failedLogins: {},
+    uniquePorts: {},
+    lastCleanup: Date.now(),
+    timeWindow: 30000, // Reduced to 30 seconds for faster detection
+
+    cleanup() {
+        const now = Date.now();
+        if (now - this.lastCleanup > this.timeWindow) {
+            const cutoff = now - this.timeWindow;
+            
+            // Cleanup old entries
+            this.cleanupObject(this.synPackets, cutoff);
+            this.cleanupObject(this.udpPackets, cutoff);
+            this.cleanupObject(this.icmpPackets, cutoff);
+            this.cleanupObject(this.failedLogins, cutoff);
+            this.cleanupObject(this.uniquePorts, cutoff);
+            
+            this.lastCleanup = now;
+        }
+    },
+
+    cleanupObject(obj, cutoff) {
+        for (const ip in obj) {
+            obj[ip] = obj[ip].filter(timestamp => timestamp > cutoff);
+            if (obj[ip].length === 0) {
+                delete obj[ip];
+            }
+        }
+    },
+
+    trackSynPacket(sourceIp) {
+        if (!this.synPackets[sourceIp]) {
+            this.synPackets[sourceIp] = [];
+        }
+        this.synPackets[sourceIp].push(Date.now());
+        this.cleanup();
+    },
+
+    trackUdpPacket(sourceIp) {
+        if (!this.udpPackets[sourceIp]) {
+            this.udpPackets[sourceIp] = [];
+        }
+        this.udpPackets[sourceIp].push(Date.now());
+        this.cleanup();
+    },
+
+    trackIcmpPacket(sourceIp) {
+        if (!this.icmpPackets[sourceIp]) {
+            this.icmpPackets[sourceIp] = [];
+        }
+        this.icmpPackets[sourceIp].push(Date.now());
+        this.cleanup();
+    },
+
+    trackFailedLogin(sourceIp, port) {
+        const key = `${sourceIp}:${port}`;
+        if (!this.failedLogins[key]) {
+            this.failedLogins[key] = [];
+        }
+        this.failedLogins[key].push(Date.now());
+        this.cleanup();
+    },
+
+    trackPort(sourceIp, port) {
+        if (!this.uniquePorts[sourceIp]) {
+            this.uniquePorts[sourceIp] = new Set();
+        }
+        this.uniquePorts[sourceIp].add(port);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    debugLog('Init', 'DOM loaded, initializing application');
+    
+    try {
+        // Initialize charts
+        initializeCharts();
+        
+        // Verify chart initialization
+        if (!trafficChart || !attackChart || !attackerChart || !patternChart) {
+            throw new Error('Charts failed to initialize properly');
+        }
+        
+        debugLog('Init', 'Charts initialized successfully');
+        
+        // Setup WebSocket connection
+        setupWebSocket();
+        
+        // Initialize attack stats
+        attackStats = {
+            dos: 0,
+            ddos: 0,
+            bruteForce: 0,
+            sqlInjection: 0,
+            webEnum: 0,
+            portScan: 0,
+            total: 0
+        };
+        
+        // Add event listener for detection threshold slider
+        const thresholdSlider = document.getElementById('detectionThreshold');
+        const thresholdValue = document.getElementById('thresholdValue');
+        
+        if (thresholdSlider && thresholdValue) {
+            thresholdSlider.addEventListener('input', function() {
+                thresholdValue.textContent = (this.value / 100).toFixed(2);
+            });
+            
+            // Initialize threshold value
+            thresholdValue.textContent = (thresholdSlider.value / 100).toFixed(2);
+        } else {
+            console.error('Could not find threshold elements');
+        }
+        
+        // Initialize button states
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        
+        if (startButton && stopButton) {
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        } else {
+            console.error('Could not find detection control buttons');
+        }
+        
+        debugLog('Init', 'Application initialized successfully');
+    } catch (error) {
+        debugLog('Error', 'Failed to initialize application:', error);
+        console.error('Initialization error:', error);
+        showError('Failed to initialize application. Please refresh the page.');
+    }
+});
+
+function initializeCharts() {
+    // Traffic Analysis Chart
+    const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+    trafficChart = new Chart(trafficCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Normal Packets',
+                    data: [],
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Attack Packets',
+                    data: [],
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    borderWidth: 2
+                },
+                {
+                    label: 'TCP Traffic',
+                    data: [],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    borderWidth: 1,
+                    hidden: true
+                },
+                {
+                    label: 'UDP Traffic',
+                    data: [],
+                    borderColor: '#6f42c1',
+                    backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    borderWidth: 1,
+                    hidden: true
+                },
+                {
+                    label: 'ICMP Traffic',
+                    data: [],
+                    borderColor: '#fd7e14',
+                    backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    borderWidth: 1,
+                    hidden: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 0
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' pkt/s';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        maxRotation: 0
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y + ' pkt/s';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Attack Distribution Chart
+    const attackCtx = document.getElementById('attackChart').getContext('2d');
+    attackChart = new Chart(attackCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['DoS/DDoS', 'Brute Force', 'SQL Injection', 'Web Enum', 'Port Scan'],
+            datasets: [{
+                data: [0, 0, 0, 0, 0],
+                backgroundColor: [
+                    '#dc3545',
+                    '#ffc107',
+                    '#17a2b8',
+                    '#6c757d',
+                    '#6610f2'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 500
+            }
+        }
+    });
+
+    // Attacker Analysis Chart
+    const attackerCtx = document.getElementById('attackerChart').getContext('2d');
+    attackerChart = new Chart(attackerCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Attack Count',
+                data: [],
+                backgroundColor: '#dc3545'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 500
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Attack Pattern Chart
+    const patternCtx = document.getElementById('patternChart').getContext('2d');
+    patternChart = new Chart(patternCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Attack Frequency',
+                data: [],
+                borderColor: '#dc3545',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 0
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Add debug logging function
+function debugLog(category, message, data = null) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${category}]:`, message, data || '');
+}
+
+// Update WebSocket connection handling
+function setupWebSocket() {
+    const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws_path = ws_scheme + '://' + window.location.host + '/ws/anomaly_detection/';
+    debugLog('WebSocket', 'Initializing real-time detection connection to:', ws_path);
+
+    let socket = new WebSocket(ws_path);
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+
+    socket.onopen = function(e) {
+        debugLog('WebSocket', 'Real-time detection connection established');
+        reconnectAttempts = 0;
+        // Send initial configuration for real-time detection
+        socket.send(JSON.stringify({
+            type: 'config',
+            sensitivity: document.getElementById('detectionThreshold').value / 100,
+            mode: document.querySelector('input[name="detectionMode"]:checked').value,
+            realtime: true
+        }));
+    };
+
+    socket.onmessage = function(e) {
+        debugLog('WebSocket', 'Received real-time packet:', e.data);
+        try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'traffic_stats') {
+                updateTrafficChart(data.stats);
+            }
+            validateAndProcessPacket(data);
+        } catch (error) {
+            debugLog('Error', 'Failed to parse real-time packet:', error);
+        }
+    };
+
+    socket.onclose = function(e) {
+        debugLog('WebSocket', 'Real-time detection connection closed', e);
+        if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setTimeout(() => {
+                debugLog('WebSocket', 'Attempting to reconnect real-time detection...', reconnectAttempts);
+                socket = setupWebSocket();
+            }, 5000);
+        }
+    };
+
+    socket.onerror = function(e) {
+        debugLog('Error', 'Real-time detection WebSocket error:', e);
+    };
+
+    return socket;
+}
+
+// Add new function to update traffic chart
+function updateTrafficChart(stats) {
+    if (!trafficChart) return;
+
+    const now = new Date().toLocaleTimeString();
+    
+    // Add new data point
+    trafficChart.data.labels.push(now);
+    trafficChart.data.datasets[0].data.push(stats.normal_packets);
+    trafficChart.data.datasets[1].data.push(stats.attack_packets);
+    trafficChart.data.datasets[2].data.push(stats.tcp_packets);
+    trafficChart.data.datasets[3].data.push(stats.udp_packets);
+    trafficChart.data.datasets[4].data.push(stats.icmp_packets);
+
+    // Keep only last 30 seconds of data
+    const maxDataPoints = 30;
+    if (trafficChart.data.labels.length > maxDataPoints) {
+        trafficChart.data.labels.shift();
+        trafficChart.data.datasets.forEach(dataset => dataset.data.shift());
+    }
+
+    // Update chart
+    trafficChart.update('none');
+}
+
+// Enhance the packet processing for real-time detection
+function validateAndProcessPacket(data) {
+    debugLog('Packet', 'Processing real-time packet:', data);
+
+    // Validate packet structure
+    if (!data || !data.type) {
+        debugLog('Error', 'Invalid packet structure - missing type');
+        return;
+    }
+
+    // Handle different packet types
+    switch (data.type) {
+        case 'anomaly_alert':
+            if (!validateAnomalyAlert(data.message)) {
+                debugLog('Error', 'Invalid anomaly alert data:', data.message);
+                return;
+            }
+            handleAnomalyAlert(data.message);
+            break;
+
+        case 'traffic_stats':
+            updateTrafficStats(data.message);
+            break;
+
+        case 'connection':
+            // Process new network connection
+            const connection = parseNetworkConnection(data.message);
+            if (connection) {
+                processNetworkConnection(connection);
+            }
+            break;
+
+        default:
+            debugLog('Warning', 'Unknown packet type:', data.type);
+    }
+}
+
+// Add new function to process network connections in real-time
+function processNetworkConnection(connection) {
+    debugLog('Connection', 'Processing real-time connection:', connection);
+
+    // Track the connection based on its type
+    if (connection.is_incoming) {
+        // Process incoming traffic
+        if (connection.protocol === 'TCP' && connection.flags === 'S') {
+            packetTracker.trackSynPacket(connection.source_ip);
+        } else if (connection.protocol === 'UDP') {
+            packetTracker.trackUdpPacket(connection.source_ip);
+        } else if (connection.protocol === 'ICMP') {
+            packetTracker.trackIcmpPacket(connection.source_ip);
+        }
+    }
+
+    // Check for attacks in real-time
+    const attackResult = detectAttack(connection);
+    if (attackResult.isAttack) {
+        displayAttackAlert(connection, attackResult);
+    }
+}
+
+function validateAnomalyAlert(alert) {
+    debugLog('Validation', 'Validating alert:', alert);
+
+    // Required fields for all alerts
+    const requiredFields = ['source_ip', 'destination_ip', 'protocol'];
+    for (const field of requiredFields) {
+        if (!alert[field]) {
+            debugLog('Validation', `Missing required field: ${field}`);
+            return false;
+        }
+    }
+
+    // Protocol-specific validation
+    switch (alert.protocol.toUpperCase()) {
+        case 'TCP':
+            if (!alert.flags) {
+                debugLog('Validation', 'Missing TCP flags');
+                return false;
+            }
+            break;
+        case 'UDP':
+            if (!alert.destination_port) {
+                debugLog('Validation', 'Missing UDP port');
+                return false;
+            }
+            break;
+    }
+
+    debugLog('Validation', 'Alert validation passed');
+    return true;
+}
+
+// Update handleAnomalyAlert with better debugging
+function handleAnomalyAlert(alert) {
+    debugLog('Detection', 'Processing alert:', alert);
+
+    // Track the packet based on its type
+    if (alert.protocol === 'TCP' && alert.flags === 'S') {
+        packetTracker.trackSynPacket(alert.source_ip);
+        debugLog('Tracking', 'SYN packet tracked', {
+            source: alert.source_ip,
+            count: getRecentSynCount(alert.source_ip)
+        });
+    }
+
+    // Get current detection sensitivity
+    const sensitivity = document.getElementById('detectionThreshold').value / 100;
+    debugLog('Config', 'Current sensitivity:', sensitivity);
+
+    // Run detection with detailed logging
+    const attackResult = detectAttack(alert);
+    debugLog('Detection', 'Attack detection result:', attackResult);
+
+    if (attackResult.isAttack) {
+        debugLog('Alert', 'Attack detected, updating visualization');
+        displayAttackAlert(alert, attackResult);
+    }
+}
+
+// Add function to display attack alerts
+function displayAttackAlert(alert, attackResult) {
+    debugLog('Display', 'Starting to display attack alert', { alert, result: attackResult });
+
+    try {
+        // Verify table exists
+        const tbody = document.getElementById('attacksTableBody');
+        if (!tbody) {
+            throw new Error('Could not find attacksTableBody element');
+        }
+
+        // Create table row
+        const row = document.createElement('tr');
+        row.className = getAttackClass(attackResult.attackType);
+        
+        // Add row content
+        row.innerHTML = `
+            <td>${new Date().toLocaleString()}</td>
+            <td><span class="badge bg-${getAttackBadgeColor(attackResult.attackType)}">${attackResult.attackType}</span></td>
+            <td>${alert.source_ip}</td>
+            <td>${alert.destination_ip || 'Unknown'}</td>
+            <td>${attackResult.details}</td>
+            <td>${Math.round(attackResult.confidence * 100)}%</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick='showAttackDetails(${JSON.stringify({
+                    ...alert,
+                    attack_type: attackResult.attackType,
+                    confidence: attackResult.confidence,
+                    details: attackResult.details,
+                    timestamp: new Date().toISOString()
+                })})'>
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </td>
+        `;
+
+        // Add row to table
+        tbody.prepend(row);
+        debugLog('Display', 'Added attack to table');
+
+        // Update stats and charts
+        updateAttackStats(attackResult.attackType);
+        debugLog('Display', 'Updated attack stats');
+
+        // Show notification
+        showError(`New attack detected: ${attackResult.attackType} from ${alert.source_ip}`);
+    } catch (error) {
+        debugLog('Error', 'Failed to display attack alert:', error);
+        console.error('Display error:', error);
+    }
+}
+
+// Update startDetection with debugging
+async function startDetection() {
+    debugLog('Detection', 'Starting anomaly detection');
+    showLoading('Starting anomaly detection...');
+    
+    fetch('/api/start-detection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        debugLog('Detection', 'Detection started successfully:', data);
+        showSuccess('Anomaly detection started successfully');
+        updateDetectionStatus(true);
+    })
+    .catch(error => {
+        debugLog('Error', 'Failed to start detection:', error);
+        showError('Failed to start detection: ' + error.message);
+        updateDetectionStatus(false);
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}
+
+function parseNetworkConnection(connectionString) {
+    try {
+        debugLog('Connection', 'Parsing connection string:', connectionString);
+
+        // Validate input
+        if (!connectionString || typeof connectionString !== 'string') {
+            debugLog('Error', 'Invalid connection string input');
+            return null;
+        }
+
+        // Split the connection string into source and destination
+        const parts = connectionString.split('-');
+        if (parts.length !== 2) {
+            debugLog('Error', 'Invalid connection format - must contain source and destination');
+            return null;
+        }
+
+        const [source, destination] = parts;
+
+        // Parse source
+        const sourceParts = source.split(':');
+        if (sourceParts.length !== 2) {
+            debugLog('Error', 'Invalid source format - must contain IP and port');
+            return null;
+        }
+
+        const [sourceIp, sourcePort] = sourceParts;
+
+        // Parse destination
+        const destParts = destination.split(':');
+        if (destParts.length !== 2) {
+            debugLog('Error', 'Invalid destination format - must contain IP and port');
+            return null;
+        }
+
+        const [destIp, destPort] = destParts;
+
+        // Validate IP addresses
+        const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+        if (!ipRegex.test(sourceIp) || !ipRegex.test(destIp)) {
+            debugLog('Error', 'Invalid IP address format');
+            return null;
+        }
+
+        // Validate ports
+        const sourcePortNum = parseInt(sourcePort);
+        const destPortNum = parseInt(destPort);
+        if (isNaN(sourcePortNum) || isNaN(destPortNum) || 
+            sourcePortNum < 0 || sourcePortNum > 65535 || 
+            destPortNum < 0 || destPortNum > 65535) {
+            debugLog('Error', 'Invalid port number');
+            return null;
+        }
+
+        // Validate individual IP octets
+        const validateIpOctets = (ip) => {
+            return ip.split('.').every(octet => {
+                const num = parseInt(octet);
+                return !isNaN(num) && num >= 0 && num <= 255;
+            });
+        };
+
+        if (!validateIpOctets(sourceIp) || !validateIpOctets(destIp)) {
+            debugLog('Error', 'Invalid IP octet values');
+            return null;
+        }
+
+        // Return parsed connection with additional metadata
+        const connection = {
+            source_ip: sourceIp,
+            source_port: sourcePortNum,
+            destination_ip: destIp,
+            destination_port: destPortNum,
+            timestamp: new Date().toISOString(),
+            is_incoming: isIncomingTraffic({
+                source_ip: sourceIp,
+                destination_ip: destIp
+            })
+        };
+
+        debugLog('Connection', 'Successfully parsed connection:', connection);
+        return connection;
+    } catch (error) {
+        debugLog('Error', 'Error parsing network connection:', error);
+        return null;
+    }
+}
+
+function detectAttack(packet) {
+    const sensitivity = document.getElementById('detectionThreshold').value / 100;
+    console.log('Current detection sensitivity:', sensitivity);
+
+    // Initialize attack detection result
+    let attackResult = {
+        isAttack: false,
+        attackType: null,
+        confidence: 0,
+        details: null
+    };
+
+    // Adjust thresholds based on sensitivity (lower values = more sensitive)
+    const thresholds = {
+        synFlood: Math.round(30 * (1 - sensitivity)), // Even lower threshold for SYN flood
+        udpFlood: Math.round(300 * (1 - sensitivity)),
+        icmpFlood: Math.round(30 * (1 - sensitivity)),
+        bruteForce: Math.round(2 * (1 - sensitivity)), // Even lower threshold for brute force
+        portScan: Math.round(5 * (1 - sensitivity)) // Even lower threshold for port scan
+    };
+
+    console.log('Current thresholds:', thresholds);
+
+    // Check for DoS/DDoS attacks
+    if (isDosAttack(packet, thresholds)) {
+        const synCount = getRecentSynCount(packet.source_ip);
+        attackResult = {
+            isAttack: true,
+            attackType: 'DOS',
+            confidence: 0.95,
+            details: `SYN flood attack detected (${synCount} SYN packets in window)`
+        };
+        updateAttackStats('DOS');
+        return attackResult;
+    }
+
+    // Check for Brute Force attacks
+    if (isBruteForceAttack(packet, thresholds)) {
+        const attempts = getRecentFailedAttempts(packet.source_ip, packet.destination_port);
+        attackResult = {
+            isAttack: true,
+            attackType: 'BRUTE_FORCE',
+            confidence: 0.90,
+            details: `Multiple failed login attempts detected (${attempts} attempts)`
+        };
+        updateAttackStats('BRUTE_FORCE');
+        return attackResult;
+    }
+
+    // Check for SQL Injection
+    if (isSqlInjection(packet)) {
+        const matchedPatterns = getSqlInjectionPatterns(packet.payload);
+        attackResult = {
+            isAttack: true,
+            attackType: 'SQL_INJECTION',
+            confidence: 0.95,
+            details: `SQL injection patterns detected: ${matchedPatterns.join(', ')}`
+        };
+        updateAttackStats('SQL_INJECTION');
+        return attackResult;
+    }
+
+    // Check for Web Enumeration
+    if (isWebEnumeration(packet)) {
+        const suspiciousPatterns = getWebEnumPatterns(packet.payload);
+        attackResult = {
+            isAttack: true,
+            attackType: 'WEB_ENUM',
+            confidence: 0.85,
+            details: `Suspicious access patterns: ${suspiciousPatterns.join(', ')}`
+        };
+        updateAttackStats('WEB_ENUM');
+        return attackResult;
+    }
+
+    // Check for Port Scanning
+    if (isPortScan(packet, thresholds)) {
+        const uniquePorts = getRecentUniquePorts(packet.source_ip);
+        attackResult = {
+            isAttack: true,
+            attackType: 'PORT_SCAN',
+            confidence: 0.90,
+            details: `Port scanning detected (${uniquePorts} unique ports)`
+        };
+        updateAttackStats('PORT_SCAN');
+        return attackResult;
+    }
+
+    return attackResult;
+}
+
+function isDosAttack(packet, thresholds) {
+    if (packet.protocol === 'TCP' && packet.flags === 'S') {
+        const synCount = getRecentSynCount(packet.source_ip);
+        console.log(`SYN packet count for ${packet.source_ip}: ${synCount}`);
+        if (synCount > thresholds.synFlood) {
+            return true;
+        }
+    }
+
+    if (packet.protocol === 'UDP') {
+        const udpCount = getRecentUdpCount(packet.source_ip);
+        console.log(`UDP packet count for ${packet.source_ip}: ${udpCount}`);
+        if (udpCount > thresholds.udpFlood) {
+            return true;
+        }
+    }
+
+    if (packet.protocol === 'ICMP') {
+        const icmpCount = getRecentIcmpCount(packet.source_ip);
+        console.log(`ICMP packet count for ${packet.source_ip}: ${icmpCount}`);
+        if (icmpCount > thresholds.icmpFlood) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function isBruteForceAttack(packet, thresholds) {
+    const failedAttempts = getRecentFailedAttempts(packet.source_ip, packet.destination_port);
+    console.log(`Failed login attempts for ${packet.source_ip}: ${failedAttempts}`);
+
+    if (packet.destination_port === 22 || packet.destination_port === 21) {
+        return failedAttempts > thresholds.bruteForce;
+    }
+
+    if (packet.destination_port === 80 || packet.destination_port === 443) {
+        return failedAttempts > thresholds.bruteForce * 2; // Web login allows more attempts
+    }
+
+    return false;
+}
+
+function getSqlInjectionPatterns(payload) {
+    if (!payload) return [];
+    
+    const patterns = [
+        { regex: /SELECT.*FROM/i, name: 'SELECT' },
+        { regex: /UNION.*SELECT/i, name: 'UNION' },
+        { regex: /INSERT.*INTO/i, name: 'INSERT' },
+        { regex: /UPDATE.*SET/i, name: 'UPDATE' },
+        { regex: /DELETE.*FROM/i, name: 'DELETE' },
+        { regex: /DROP.*TABLE/i, name: 'DROP' },
+        { regex: /' OR '1'='1/i, name: 'Authentication bypass' }
+    ];
+
+    return patterns
+        .filter(pattern => pattern.regex.test(payload))
+        .map(pattern => pattern.name);
+}
+
+function getWebEnumPatterns(payload) {
+    if (!payload) return [];
+
+    const patterns = [
+        { regex: /admin|administrator/i, name: 'Admin access' },
+        { regex: /\.php|\.asp|\.jsp/i, name: 'Script access' },
+        { regex: /\.git|\.env|\.htaccess/i, name: 'Sensitive files' },
+        { regex: /wp-admin|wp-content/i, name: 'WordPress' },
+        { regex: /\.bak|\.old|\.backup/i, name: 'Backup files' }
+    ];
+
+    return patterns
+        .filter(pattern => pattern.regex.test(payload))
+        .map(pattern => pattern.name);
+}
+
+function isPortScan(packet, thresholds) {
+    const uniquePorts = getRecentUniquePorts(packet.source_ip);
+    console.log(`Unique ports for ${packet.source_ip}: ${uniquePorts}`);
+
+    if (packet.protocol === 'TCP' && packet.flags === 'S') {
+        const synCount = getRecentSynCount(packet.source_ip);
+        if (synCount > thresholds.portScan && uniquePorts > thresholds.portScan) {
+            return true;
+        }
+    }
+
+    if (packet.protocol === 'UDP') {
+        const udpCount = getRecentUdpCount(packet.source_ip);
+        if (udpCount > thresholds.portScan && uniquePorts > thresholds.portScan) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Update helper functions to use packet tracker
+function getRecentSynCount(sourceIp) {
+    return (packetTracker.synPackets[sourceIp] || []).length;
+}
+
+function getRecentUdpCount(sourceIp) {
+    return (packetTracker.udpPackets[sourceIp] || []).length;
+}
+
+function getRecentIcmpCount(sourceIp) {
+    return (packetTracker.icmpPackets[sourceIp] || []).length;
+}
+
+function getRecentFailedAttempts(sourceIp, port) {
+    const key = `${sourceIp}:${port}`;
+    return (packetTracker.failedLogins[key] || []).length;
+}
+
+function getRecentUniquePorts(sourceIp) {
+    return packetTracker.uniquePorts[sourceIp] ? packetTracker.uniquePorts[sourceIp].size : 0;
+}
+
+function updateAttackStats(attackType) {
+    debugLog('Stats', 'Updating attack stats for type:', attackType);
+    
+    try {
+        // Update specific attack counter
+        switch(attackType) {
+            case 'DOS':
+                attackStats.dos++;
+                break;
+            case 'DDOS':
+                attackStats.ddos++;
+                break;
+            case 'BRUTE_FORCE':
+                attackStats.bruteForce++;
+                break;
+            case 'SQL_INJECTION':
+                attackStats.sqlInjection++;
+                break;
+            case 'WEB_ENUM':
+                attackStats.webEnum++;
+                break;
+            case 'PORT_SCAN':
+                attackStats.portScan++;
+                break;
+        }
+
+        // Calculate total
+        attackStats.total = attackStats.dos + attackStats.ddos + 
+                          attackStats.bruteForce + attackStats.sqlInjection + 
+                          attackStats.webEnum + attackStats.portScan;
+
+        debugLog('Stats', 'Current attack stats:', attackStats);
+
+        // Update visualizations
+        requestAnimationFrame(() => {
+            updateCharts();
+        });
+    } catch (error) {
+        debugLog('Error', 'Failed to update attack stats:', error);
+        console.error('Stats update error:', error);
+    }
+}
+
+function updateCharts() {
+    debugLog('Charts', 'Starting chart updates');
+    
+    try {
+        // Update attack distribution chart
+        if (attackChart && attackChart.data) {
+            debugLog('Charts', 'Updating attack distribution');
+            attackChart.data.datasets[0].data = [
+                attackStats.dos + attackStats.ddos,
+                attackStats.bruteForce,
+                attackStats.sqlInjection,
+                attackStats.webEnum,
+                attackStats.portScan
+            ];
+            attackChart.update('none'); // Disable animation for performance
+        } else {
+            debugLog('Error', 'Attack chart not initialized');
+        }
+
+        // Update traffic chart with more detailed data
+        if (trafficChart && trafficChart.data) {
+            debugLog('Charts', 'Updating traffic chart');
+            const now = new Date().toLocaleTimeString();
+            
+            // Add more detailed traffic data
+            trafficChart.data.labels.push(now);
+            trafficChart.data.datasets[0].data.push(Math.random() * 50); // Normal traffic
+            trafficChart.data.datasets[1].data.push(attackStats.total * 10); // Attack traffic
+            
+            // Add protocol-specific traffic
+            if (!trafficChart.data.datasets[2]) {
+                trafficChart.data.datasets.push({
+                    label: 'TCP Traffic',
+                    data: [],
+                    borderColor: '#007bff',
+                    fill: false,
+                    tension: 0.4
+                });
+                trafficChart.data.datasets.push({
+                    label: 'UDP Traffic',
+                    data: [],
+                    borderColor: '#6f42c1',
+                    fill: false,
+                    tension: 0.4
+                });
+                trafficChart.data.datasets.push({
+                    label: 'ICMP Traffic',
+                    data: [],
+                    borderColor: '#fd7e14',
+                    fill: false,
+                    tension: 0.4
+                });
+            }
+            
+            // Update protocol-specific data
+            trafficChart.data.datasets[2].data.push(packetTracker.synPackets.length);
+            trafficChart.data.datasets[3].data.push(packetTracker.udpPackets.length);
+            trafficChart.data.datasets[4].data.push(packetTracker.icmpPackets.length);
+
+            if (trafficChart.data.labels.length > 20) {
+                trafficChart.data.labels.shift();
+                trafficChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            trafficChart.update('none');
+        } else {
+            debugLog('Error', 'Traffic chart not initialized');
+        }
+
+        // Update attacker chart with more details
+        if (attackerChart && attackerChart.data) {
+            debugLog('Charts', 'Updating attacker chart');
+            const attackerIPs = Object.keys(packetTracker.synPackets)
+                .concat(Object.keys(packetTracker.failedLogins))
+                .filter((value, index, self) => self.indexOf(value) === index)
+                .slice(0, 5);
+
+            attackerChart.data.labels = attackerIPs;
+            attackerChart.data.datasets = [{
+                label: 'SYN Packets',
+                data: attackerIPs.map(ip => packetTracker.synPackets[ip]?.length || 0),
+                backgroundColor: '#dc3545'
+            }, {
+                label: 'Failed Logins',
+                data: attackerIPs.map(ip => {
+                    const loginCount = Object.entries(packetTracker.failedLogins)
+                        .filter(([key]) => key.startsWith(ip))
+                        .reduce((sum, [_, attempts]) => sum + attempts.length, 0);
+                    return loginCount;
+                }),
+                backgroundColor: '#ffc107'
+            }];
+            attackerChart.update('none');
+        } else {
+            debugLog('Error', 'Attacker chart not initialized');
+        }
+
+        // Update pattern chart with attack-specific patterns
+        if (patternChart && patternChart.data) {
+            debugLog('Charts', 'Updating pattern chart');
+            const now = new Date().toLocaleTimeString();
+            
+            // Update based on attack type
+            const currentAttackType = getCurrentAttackType();
+            const patternData = getAttackPatternData(currentAttackType);
+            
+            patternChart.data.labels.push(now);
+            patternChart.data.datasets = patternData.datasets;
+            
+            if (patternChart.data.labels.length > 20) {
+                patternChart.data.labels.shift();
+                patternChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            patternChart.update('none');
+        } else {
+            debugLog('Error', 'Pattern chart not initialized');
+        }
+
+        debugLog('Charts', 'Finished updating all charts');
+    } catch (error) {
+        debugLog('Error', 'Failed to update charts:', error);
+        console.error('Chart update error:', error);
+    }
+}
+
+function getCurrentAttackType() {
+    // Get the most recent attack type from the table
+    const tableBody = document.getElementById('attacksTableBody');
+    if (tableBody && tableBody.rows.length > 0) {
+        return tableBody.rows[0].cells[1].textContent.trim();
+    }
+    return null;
+}
+
+function getAttackPatternData(attackType) {
+    // Define pattern data for different attack types
+    const patterns = {
+        'DOS_SYN_FLOOD': {
+            datasets: [{
+                label: 'SYN Packets',
+                data: [],
+                borderColor: '#dc3545',
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        'DOS_UDP_FLOOD': {
+            datasets: [{
+                label: 'UDP Packets',
+                data: [],
+                borderColor: '#dc3545',
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        'DOS_ICMP_FLOOD': {
+            datasets: [{
+                label: 'ICMP Packets',
+                data: [],
+                borderColor: '#dc3545',
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        'BRUTE_FORCE_SSH': {
+            datasets: [{
+                label: 'Failed Attempts',
+                data: [],
+                backgroundColor: '#ffc107'
+            }]
+        },
+        'BRUTE_FORCE_FTP': {
+            datasets: [{
+                label: 'Failed Attempts',
+                data: [],
+                backgroundColor: '#ffc107'
+            }]
+        },
+        'BRUTE_FORCE_LOGIN': {
+            datasets: [{
+                label: 'Failed Attempts',
+                data: [],
+                backgroundColor: '#ffc107'
+            }]
+        },
+        'SQL_INJECTION': {
+            datasets: [{
+                label: 'SQL Keywords',
+                data: [],
+                backgroundColor: '#17a2b8'
+            }, {
+                label: 'Other',
+                data: [],
+                backgroundColor: '#6c757d'
+            }]
+        },
+        'WEB_ENUM': {
+            datasets: [{
+                label: 'Requests',
+                data: [],
+                borderColor: '#6c757d',
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        'PORT_SCAN': {
+            datasets: [{
+                label: 'Ports Scanned',
+                data: [],
+                borderColor: '#6c757d',
+                fill: false,
+                tension: 0.4
+            }]
+        }
+    };
+    
+    return patterns[attackType] || {
+        datasets: [{
+            label: 'Unknown Pattern',
+            data: [],
+            borderColor: '#6c757d',
+            fill: false,
+            tension: 0.4
+        }]
+    };
+}
+
+function getAttackClass(attackType) {
+    switch(attackType) {
+        case 'DOS':
+        case 'DDOS':
+            return 'dos-attack';
+        case 'BRUTE_FORCE_SSH':
+        case 'BRUTE_FORCE_LOGIN':
+        case 'BRUTE_FORCE_FTP':
+            return 'brute-force-attack';
+        case 'SQL_INJECTION':
+            return 'injection-attack';
+        case 'WEB_ENUM':
+        case 'PORT_SCAN':
+            return 'scan-attack';
+        default:
+            return '';
+    }
+}
+
+function getAttackBadgeColor(attackType) {
+    switch(attackType) {
+        case 'DOS':
+        case 'DDOS':
+            return 'danger';
+        case 'BRUTE_FORCE_SSH':
+        case 'BRUTE_FORCE_LOGIN':
+        case 'BRUTE_FORCE_FTP':
+            return 'warning';
+        case 'SQL_INJECTION':
+            return 'info';
+        case 'WEB_ENUM':
+        case 'PORT_SCAN':
+            return 'secondary';
+        default:
+            return 'primary';
+    }
+}
+
+function getAttackDetails(alert) {
+    if (alert.attack_type === 'SUSPICIOUS_CONNECTION') {
+        return `Connection from ${alert.source_ip}:${alert.source_port} to ${alert.destination_ip}:${alert.destination_port}`;
+    }
+    
+    switch(alert.attack_type) {
+        case 'DOS':
+        case 'DDOS':
+            return `SYN flood detected from ${alert.source_ip}`;
+        case 'BRUTE_FORCE_SSH':
+            return `Multiple SSH login attempts from ${alert.source_ip}`;
+        case 'BRUTE_FORCE_LOGIN':
+            return `Multiple web login attempts from ${alert.source_ip}`;
+        case 'BRUTE_FORCE_FTP':
+            return `Multiple FTP login attempts from ${alert.source_ip}`;
+        case 'SQL_INJECTION':
+            return `SQL injection attempt detected`;
+        case 'WEB_ENUM':
+            return `Web enumeration activity detected`;
+        case 'PORT_SCAN':
+            return `Port scanning activity detected`;
+        default:
+            return 'Unknown attack type';
+    }
+}
+
+function showAttackDetails(alert) {
+    document.getElementById('modalTime').textContent = new Date(alert.timestamp).toLocaleString();
+    document.getElementById('modalType').textContent = alert.attack_type;
+    document.getElementById('modalSource').textContent = alert.source_ip;
+    document.getElementById('modalTarget').textContent = alert.destination_ip;
+    document.getElementById('modalConfidence').textContent = `${Math.round((1-alert.probability)*100)}%`;
+    document.getElementById('modalProtocol').textContent = alert.protocol || 'Unknown';
+    document.getElementById('modalPort').textContent = alert.destination_port || 'Unknown';
+    document.getElementById('modalSize').textContent = alert.packet_size || 'Unknown';
+    document.getElementById('modalFlags').textContent = alert.flags || 'Unknown';
+    document.getElementById('modalPayload').textContent = alert.payload || 'None';
+    
+    // Show attack pattern analysis
+    const patternDiv = document.getElementById('modalPattern');
+    patternDiv.innerHTML = getAttackPatternAnalysis(alert);
+    
+    const modal = new bootstrap.Modal(document.getElementById('attackModal'));
+    modal.show();
+}
+
+async function exportAttackDetails() {
+    try {
+        // Get the current attack details from the modal
+        const attackDetails = {
+            time: document.getElementById('modalTime').textContent,
+            type: document.getElementById('modalType').textContent,
+            source: document.getElementById('modalSource').textContent,
+            target: document.getElementById('modalTarget').textContent,
+            confidence: document.getElementById('modalConfidence').textContent,
+            protocol: document.getElementById('modalProtocol').textContent,
+            port: document.getElementById('modalPort').textContent,
+            size: document.getElementById('modalSize').textContent,
+            flags: document.getElementById('modalFlags').textContent,
+            payload: document.getElementById('modalPayload').textContent,
+            pattern: document.getElementById('modalPattern').innerHTML
+        };
+        
+        // Create a text representation of the attack details
+        let reportText = `Attack Details Report\n`;
+        reportText += `===================\n\n`;
+        reportText += `Time: ${attackDetails.time}\n`;
+        reportText += `Attack Type: ${attackDetails.type}\n`;
+        reportText += `Source IP: ${attackDetails.source}\n`;
+        reportText += `Target: ${attackDetails.target}\n`;
+        reportText += `Confidence: ${attackDetails.confidence}\n\n`;
+        reportText += `Technical Details:\n`;
+        reportText += `-----------------\n`;
+        reportText += `Protocol: ${attackDetails.protocol}\n`;
+        reportText += `Port: ${attackDetails.port}\n`;
+        reportText += `Packet Size: ${attackDetails.size}\n`;
+        reportText += `Flags: ${attackDetails.flags}\n`;
+        reportText += `Payload: ${attackDetails.payload}\n\n`;
+        reportText += `Attack Pattern Analysis:\n`;
+        reportText += `----------------------\n`;
+        reportText += `${attackDetails.pattern.replace(/<[^>]*>/g, '')}\n`;
+        
+        // Create a blob and download it
+        const blob = new Blob([reportText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attack_details_${new Date().toISOString().replace(/:/g, '-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        showSuccess('Attack details exported successfully');
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+function getAttackPatternAnalysis(alert) {
+    let analysis = '<div class="alert alert-info">';
+    switch(alert.attack_type) {
+        case 'DOS':
+        case 'DDOS':
+            analysis += `
+                <h6>Attack Pattern Analysis:</h6>
+                <ul>
+                    <li>High frequency of SYN packets</li>
+                    <li>Small TCP window size</li>
+                    <li>Multiple connection attempts</li>
+                </ul>
+            `;
+            break;
+        case 'BRUTE_FORCE_SSH':
+        case 'BRUTE_FORCE_LOGIN':
+        case 'BRUTE_FORCE_FTP':
+            analysis += `
+                <h6>Attack Pattern Analysis:</h6>
+                <ul>
+                    <li>Multiple failed login attempts</li>
+                    <li>Short time intervals between attempts</li>
+                    <li>Common username/password combinations</li>
+                </ul>
+            `;
+            break;
+        case 'SQL_INJECTION':
+            analysis += `
+                <h6>Attack Pattern Analysis:</h6>
+                <ul>
+                    <li>SQL keywords in payload</li>
+                    <li>High entropy in request data</li>
+                    <li>Common SQL injection patterns</li>
+                </ul>
+            `;
+            break;
+        case 'WEB_ENUM':
+        case 'PORT_SCAN':
+            analysis += `
+                <h6>Attack Pattern Analysis:</h6>
+                <ul>
+                    <li>Sequential port scanning</li>
+                    <li>Multiple SYN packets</li>
+                    <li>No established connections</li>
+                </ul>
+            `;
+            break;
+        default:
+            analysis += '<p>No pattern analysis available for this attack type.</p>';
+    }
+    analysis += '</div>';
+    return analysis;
+}
+
+async function stopDetection() {
+    debugLog('Detection', 'Stopping anomaly detection');
+    showLoading('Stopping anomaly detection...');
+    
+    fetch('/api/stop-detection/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        debugLog('Detection', 'Detection stopped successfully:', data);
+        showSuccess('Anomaly detection stopped successfully');
+        updateDetectionStatus(false);
+    })
+    .catch(error => {
+        debugLog('Error', 'Failed to stop detection:', error);
+        showError('Failed to stop detection: ' + error.message);
+    })
+    .finally(() => {
+        hideLoading();
+    });
+}
+
+function updateDetectionStatus(isDetecting) {
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const statusIndicator = document.getElementById('detectionStatus');
+    
+    if (isDetecting) {
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        statusIndicator.textContent = 'Active';
+        statusIndicator.className = 'badge bg-success';
+    } else {
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        statusIndicator.textContent = 'Inactive';
+            }
+            
+            // Show success message only if not in error state
+            if (data.status !== 'Error') {
+                showSuccess('Network information updated');
+            }
+        })
+        .catch(error => {
+            debugLog('Error', 'Failed to fetch network information:', error);
+            
+            // Update UI with error state
+            document.getElementById('activeInterface').textContent = 'Error';
+            document.getElementById('ipAddress').textContent = 'Error';
+            document.getElementById('networkStatus').textContent = 'Error';
+            document.getElementById('detectionMode').textContent = 'Error';
+            
+            // Show error message
+            showError('Failed to load network information: ' + error.message);
+            
+            // Enable start button in case of error
+            document.getElementById('startButton').disabled = false;
+            document.getElementById('stopButton').disabled = true;
+        });
+}
+
+// Add periodic network info update with error handling
+let networkInfoInterval;
+function startNetworkInfoUpdates() {
+    // Clear any existing interval
+    if (networkInfoInterval) {
+        clearInterval(networkInfoInterval);
+    }
+    
+    // Initial update
+    getNetworkInfo();
+    
+    // Set up periodic updates
+    networkInfoInterval = setInterval(() => {
+        if (isDetecting) {
+            getNetworkInfo();
+        }
+    }, 30000); // Update every 30 seconds
+}
+
+// Start network info updates when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    startNetworkInfoUpdates();
+});
+
+// Stop network info updates when page unloads
+window.addEventListener('beforeunload', function() {
+    if (networkInfoInterval) {
+        clearInterval(networkInfoInterval);
+    }
+});
+</script>
+{% endblock %} 

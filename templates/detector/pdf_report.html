@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Malware Analysis Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #800000;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+        .section-title {
+            color: #800000;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .info-item {
+            margin-bottom: 8px;
+        }
+        .label {
+            font-weight: bold;
+            color: #444;
+        }
+        .value {
+            color: #666;
+        }
+        .threat-high {
+            color: #ff0000;
+        }
+        .threat-medium {
+            color: #ffa500;
+        }
+        .threat-low {
+            color: #008000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Malware Analysis Report</h1>
+        <p>Generated on: {{ generated_at }}</p>
+    </div>
+
+    <!-- Threat Classification -->
+    <div class="section">
+        <div class="section-title">Threat Classification</div>
+        <div class="info-item">
+            <span class="label">Classification:</span>
+            <span class="value {% if result.threat_classification == 'Malicious' %}threat-high{% elif result.threat_classification == 'Suspicious' %}threat-medium{% else %}threat-low{% endif %}">
+                {{ result.threat_classification }}
+            </span>
+        </div>
+        <div class="info-item">
+            <span class="label">Detection Rate:</span>
+            <span class="value">{{ result.threat_summary.malicious }}/{{ result.threat_summary.total_scanners }} Engines</span>
+        </div>
+    </div>
+
+    <!-- General Information -->
+    <div class="section">
+        <div class="section-title">General Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">File Name:</span>
+                <span class="value">{{ result.general_info.file_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">File Type:</span>
+                <span class="value">{{ result.general_info.file_type }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">File Size:</span>
+                <span class="value">{{ result.general_info.file_size|filesizeformat }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">First Seen:</span>
+                <span class="value">{{ result.general_info.first_seen|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Last Analyzed:</span>
+                <span class="value">{{ result.general_info.last_analyzed|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Times Submitted:</span>
+                <span class="value">{{ result.general_info.times_submitted }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Hashes -->
+    <div class="section">
+        <div class="section-title">File Hashes</div>
+        <div class="info-item">
+            <span class="label">MD5:</span>
+            <span class="value">{{ result.general_info.md5 }}</span>
+        </div>
+        <div class="info-item">
+            <span class="label">SHA-256:</span>
+            <span class="value">{{ result.general_info.sha256 }}</span>
+        </div>
+    </div>
+
+    <!-- Threat Summary -->
+    <div class="section">
+        <div class="section-title">Threat Summary</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Total Scanners:</span>
+                <span class="value">{{ result.threat_summary.total_scanners }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Malicious Detections:</span>
+                <span class="value threat-high">{{ result.threat_summary.malicious }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Clean Detections:</span>
+                <span class="value threat-low">{{ result.threat_summary.clean }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Suspicious Detections:</span>
+                <span class="value threat-medium">{{ result.threat_summary.suspicious }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Antivirus Detections -->
+    {% if result.av_detections %}
+    <div class="section">
+        <div class="section-title">Antivirus Detections</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Engine</th>
+                    <th>Detection Name</th>
+                    <th>Category</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detection in result.av_detections %}
+                <tr>
+                    <td>{{ detection.engine }}</td>
+                    <td>{{ detection.detection_name }}</td>
+                    <td>{{ detection.category }}</td>
+                    <td>{{ detection.last_updated|date:"Y-m-d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Behavior Analysis -->
+    {% if result.behavior_analysis.execution or result.behavior_analysis.network or result.behavior_analysis.registry %}
+    <div class="section">
+        <div class="section-title">Behavior Analysis</div>
+        {% if result.behavior_analysis.execution %}
+        <div class="info-item">
+            <span class="label">Execution:</span>
+            <ul>
+                {% for process in result.behavior_analysis.execution %}
+                <li>{{ process }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if result.behavior_analysis.network %}
+        <div class="info-item">
+            <span class="label">Network Activity:</span>
+            <ul>
+                {% for connection in result.behavior_analysis.network %}
+                <li>{{ connection }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if result.behavior_analysis.registry %}
+        <div class="info-item">
+            <span class="label">Registry Changes:</span>
+            <ul>
+                {% for key in result.behavior_analysis.registry %}
+                <li>{{ key }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- MITRE ATT&CK Mapping -->
+    {% if result.mitre_tactics %}
+    <div class="section">
+        <div class="section-title">MITRE ATT&CK Mapping</div>
+        <div class="info-item">
+            <ul>
+                {% for tactic in result.mitre_tactics %}
+                <li>{{ tactic }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated by Threat Detection Platform</p>
+        <p>Report ID: {{ result.general_info.sha256|slice:":8" }}-{{ generated_at|date:"Ymd-His" }}</p>
+    </div>
+</body>
+</html> 

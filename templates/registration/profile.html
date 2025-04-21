@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Threat Detection Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-dark: #0d1117;
+        --secondary-dark: #161b22;
+        --border-dark: #30363d;
+        --accent-teal: #2dd4bf;
+        --accent-blue: #3b82f6;
+        --text-light: #f3f4f6;
+        --text-muted: #9ca3af;
+        --input-dark: #111827;
+        --success: #10b981;
+        --danger: #ef4444;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    body {
+        background: var(--primary-dark);
+        color: var(--text-light);
+    }
+
+    .profile-container {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .profile-card {
+        background: rgba(22, 27, 34, 0.8);
+        border: 1px solid var(--border-dark);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(10px);
+    }
+
+    .profile-header {
+        background: rgba(13, 17, 23, 0.8);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-dark);
+        position: relative;
+    }
+
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-teal), transparent);
+    }
+
+    .profile-title {
+        color: var(--accent-teal);
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+        text-align: center;
+    }
+
+    .profile-body {
+        padding: 2rem;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        color: var(--text-light);
+        font-weight: 600;
+    }
+
+    .profile-info {
+        margin-bottom: 2rem;
+    }
+
+    .profile-info-item {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-dark);
+    }
+
+    .profile-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .profile-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-value {
+        font-size: 1.1rem;
+    }
+
+    .profile-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .profile-btn {
+        flex: 1;
+        background: rgba(13, 17, 23, 0.8);
+        color: var(--text-light);
+        border: 1px solid var(--border-dark);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        text-align: center;
+        text-decoration: none;
+    }
+
+    .profile-btn:hover {
+        background: rgba(22, 27, 34, 0.8);
+        transform: translateY(-2px);
+    }
+
+    .profile-btn-primary {
+        background: linear-gradient(to right, var(--accent-teal), var(--accent-blue));
+        border: none;
+    }
+
+    .profile-btn-primary:hover {
+        background: linear-gradient(to right, var(--accent-blue), var(--accent-teal));
+        box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3);
+    }
+
+    .profile-btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: var(--danger);
+    }
+
+    .profile-btn-danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-success {
+        background-color: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: var(--success);
+    }
+
+    .activity-log {
+        margin-top: 2rem;
+    }
+
+    .activity-title {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        color: var(--accent-teal);
+    }
+
+    .activity-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .activity-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-dark);
+        display: flex;
+        align-items: center;
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(45, 212, 191, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .activity-icon svg {
+        width: 16px;
+        height: 16px;
+        color: var(--accent-teal);
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-text {
+        margin: 0;
+    }
+
+    .activity-time {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .logout-form {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .logout-btn {
+        width: 100%;
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        text-align: center;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.2);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="profile-card">
+        <div class="profile-header">
+            <h2 class="profile-title">Admin</h2>
+        </div>
+        <div class="profile-body">
+            <div class="profile-avatar">
+                {{ user.username.0|upper }}
+            </div>
+            
+            <div class="profile-info">
+                <div class="profile-info-item">
+                    <div class="profile-label">Username</div>
+                    <div class="profile-value">{{ user.username }}</div>
+                </div>
+                
+                <div class="profile-info-item">
+                    <div class="profile-label">Email</div>
+                    <div class="profile-value">{{ user.email }}</div>
+                </div>
+                
+                <div class="profile-info-item">
+                    <div class="profile-label">Last Login</div>
+                    <div class="profile-value">{{ user.last_login|date:"F j, Y, g:i a" }}</div>
+                </div>
+                
+                <div class="profile-info-item">
+                    <div class="profile-label">Account Created</div>
+                    <div class="profile-value">{{ user.date_joined|date:"F j, Y" }}</div>
+                </div>
+            </div>
+            
+            <div class="profile-actions">
+                <a href="{% url 'password_reset' %}" class="profile-btn">Change Password</a>
+                <a href="{% url 'detector:dashboard' %}" class="profile-btn profile-btn-primary">Dashboard</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">Logout</button>
+                </form>
+            </div>
+            
+            <div class="activity-log">
+                <h3 class="activity-title">Recent Activity</h3>
+                <ul class="activity-list">
+                    <li class="activity-item">
+                        <div class="activity-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="activity-content">
+                            <p class="activity-text">Logged into the system</p>
+                            <div class="activity-time">{{ user.last_login|date:"F j, Y, g:i a" }}</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

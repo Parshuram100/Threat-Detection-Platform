@@ -1,0 +1,932 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Network Analyst Assistant{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+    --primary-color: #1a237e;
+    --secondary-color: #0d47a1;
+    --accent-color: #2196f3;
+    --danger-color: #d32f2f;
+    --warning-color: #f57c00;
+    --light-color: #f5f5f5;
+    --dark-color: #212121;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+    --border-radius: 8px;
+    --message-bg: #ffffff;
+    --code-bg: #263238;
+    --font-primary: 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'Fira Code', 'Consolas', monospace;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: var(--font-primary);
+    line-height: 1.6;
+    color: var(--dark-color);
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    background: var(--message-bg);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 1.5rem;
+    border-bottom: none;
+}
+
+.card-header h4, .card-header h5 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.chat-container {
+    height: 500px;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background-color: var(--message-bg);
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    scroll-behavior: smooth;
+}
+
+.message {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border-radius: var(--border-radius);
+    max-width: 85%;
+    position: relative;
+    line-height: 1.6;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    font-size: 0.95rem;
+}
+
+.message-user {
+    background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message-assistant {
+    background-color: var(--message-bg);
+    color: var(--dark-color);
+    margin-right: auto;
+    border-bottom-left-radius: 0.25rem;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: rgba(108, 117, 125, 0.8);
+    margin-top: 0.75rem;
+    text-align: right;
+    font-weight: 500;
+}
+
+.message p {
+    margin-bottom: 0.75rem;
+}
+
+.message p:last-child {
+    margin-bottom: 0;
+}
+
+/* Code formatting */
+.message pre {
+    background-color: var(--code-bg);
+    color: #e6e6e6;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.message code {
+    background-color: rgba(0,0,0,0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+.message pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Tables in messages */
+.message table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.message table th {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--secondary-color);
+}
+
+.message table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    background-color: var(--message-bg);
+}
+
+.message table tr:last-child td {
+    border-bottom: none;
+}
+
+.message table tr:hover td {
+    background-color: rgba(0,0,0,0.02);
+}
+
+/* Lists in messages */
+.message ul, .message ol {
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.message ul li, .message ol li {
+    margin-bottom: 0.75rem;
+    position: relative;
+}
+
+.message ul li::before {
+    content: "•";
+    color: var(--accent-color);
+    font-weight: bold;
+    position: absolute;
+    left: -1.25rem;
+}
+
+.message ol {
+    counter-reset: item;
+}
+
+.message ol li {
+    counter-increment: item;
+}
+
+.message ol li::before {
+    content: counter(item) ".";
+    color: var(--accent-color);
+    font-weight: bold;
+    position: absolute;
+    left: -1.25rem;
+}
+
+/* Command output styling */
+.command-output {
+    background-color: #2d2d2d;
+    color: #e6e6e6;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 0.75rem 0;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    position: relative;
+}
+
+.command-output::before {
+    content: '$ Command Output';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255,255,255,0.1);
+    padding: 0.25rem 1rem;
+    font-size: 0.8rem;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.command-output pre {
+    background-color: transparent;
+    padding: 1.5rem 0 0.5rem 0;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+/* Note boxes */
+.note-box {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-left: 4px solid var(--accent-color);
+    padding: 1.25rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.warning-box {
+    background-color: rgba(245, 124, 0, 0.1);
+    border-left: 4px solid var(--warning-color);
+    padding: 1.25rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.chat-input {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: var(--message-bg);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.chat-input textarea {
+    border-radius: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    resize: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+}
+
+.send-btn {
+    align-self: flex-end;
+    height: 45px;
+    width: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.network-resources {
+    margin-top: 1rem;
+}
+
+.resource-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--secondary-color);
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.resource-card:hover {
+    transform: translateX(5px);
+    box-shadow: var(--shadow);
+}
+
+.assistant-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: 3px solid white;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.suggestion-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.suggestion-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.suggestion-card .card-body {
+    padding: 1.5rem;
+}
+
+.suggestion-card .card-title {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+}
+
+.suggestion-card .card-text {
+    color: var(--dark-color);
+    font-size: 0.95rem;
+}
+
+/* Loading animation */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--message-bg);
+    border-radius: var(--border-radius);
+    width: fit-content;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    animation: typing 1.5s infinite ease-in-out;
+}
+
+@keyframes typing {
+    0% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-5px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0.4; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Network Resources Sidebar -->
+        <div class="col-md-3">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-network-wired me-2"></i>Network Resources</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="networkResources">
+                        <!-- Troubleshooting Guides -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#troubleshootingGuides">
+                                    <i class="fas fa-tools me-2"></i>Troubleshooting Guides
+                                </button>
+                            </h2>
+                            <div id="troubleshootingGuides" class="accordion-collapse collapse show">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Connectivity Issues</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Performance Optimization</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Routing Problems</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>DNS Troubleshooting</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Firewall Configuration</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Network Tools -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#networkTools">
+                                    <i class="fas fa-wrench me-2"></i>Network Tools
+                                </button>
+                            </h2>
+                            <div id="networkTools" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Ping & Traceroute</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Packet Analysis</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Bandwidth Monitoring</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Network Scanning</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Protocol Analyzers</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Best Practices -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bestPractices">
+                                    <i class="fas fa-book me-2"></i>Best Practices
+                                </button>
+                            </h2>
+                            <div id="bestPractices" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Network Documentation</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Change Management</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Monitoring Setup</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Backup Strategies</li>
+                                        <li><i class="fas fa-check-circle text-success me-2"></i>Security Guidelines</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% comment %} <div class="network-resources mt-4">
+                        <h6 class="mb-3">Quick Reference Links</h6>
+                        <div class="resource-card">
+                            <h6><i class="fas fa-link me-2"></i>RFC Documents</h6>
+                            <small class="text-muted">Official protocol specifications and standards</small>
+                        </div>
+                        <div class="resource-card">
+                            <h6><i class="fas fa-link me-2"></i>Vendor Documentation</h6>
+                            <small class="text-muted">Cisco, Juniper, Arista, and more</small>
+                        </div>
+                        <div class="resource-card">
+                            <h6><i class="fas fa-link me-2"></i>Network Calculators</h6>
+                            <small class="text-muted">Subnet, CIDR, VLSM calculators</small>
+                        </div>
+                    </div> {% endcomment %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-md-9">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <img src="{% static 'img/AISA.jpeg' %}" alt="AISA Logo" class="me-3 assistant-logo" onerror="this.src='https://via.placeholder.com/80?text=AISA'">
+                            <h4 class="mb-0"><i class="fas fa-robot me-2"></i>AI Network Analyst Assistant</h4>
+                        </div>
+                        <button id="downloadReport" class="btn btn-light btn-sm">
+                            <i class="fas fa-download me-2"></i>Download Report
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if not gemini_api_configured %}
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>API Key Not Configured</h5>
+                            <p>To use the Network Analyst Assistant powered by AI, please follow these steps:</p>
+                            <ol>
+                                <li>Get your Gemini API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
+                                <li>Create a <code>.env</code> file in your project root directory</li>
+                                <li>Add your API key to the .env file: <code>GEMINI_API_KEY=your_api_key_here</code></li>
+                                <li>Restart your Django server</li>
+                            </ol>
+                        </div>
+                    {% else %}
+                        <!-- Chat Interface -->
+                        <div class="chat-container" id="chatContainer">
+                            <!-- Welcome message -->
+                            <div class="message message-assistant">
+                                <p>👋 Hello! I'm your Network Analyst Assistant powered by AI. I can help you with network troubleshooting, research, best practices, and technical questions.</p>
+                                <p>I can provide information in various formats including:</p>
+                                <ul>
+                                    <li>Step-by-step troubleshooting guides</li>
+                                    <li>Network configuration examples</li>
+                                    <li>Protocol explanations</li>
+                                    <li>Command syntax and usage</li>
+                                </ul>
+                                <p>How can I assist you today?</p>
+                                <div class="message-time">Today, 12:00 PM</div>
+                            </div>
+                            
+                            <!-- Messages will be added here dynamically -->
+                            {% if response %}
+                                <div class="message message-user">
+                                    <p>{{ security_query }}</p>
+                                    <div class="message-time" id="userMessageTime">Just now</div>
+                                </div>
+                                <div class="message message-assistant">
+                                    <div id="formattedResponse">{{ response }}</div>
+                                    <div class="message-time" id="assistantMessageTime">Just now</div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Query Form -->
+                        <form method="POST" id="chatForm">
+                            {% csrf_token %}
+                            <div class="chat-input">
+                                <textarea class="form-control" id="security_query" name="security_query" rows="2" 
+                                        placeholder="Type your network question here..."></textarea>
+                                <button type="submit" class="send-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Ask me about network protocols, troubleshooting, configurations, best practices, or any network-related topic!</small>
+                            </div>
+                            <input type="hidden" id="hasResponse" name="hasResponse" value="{% if response %}true{% else %}false{% endif %}">
+                        </form>
+
+                        {% if error %}
+                            <div class="alert alert-danger mt-3">
+                                {{ error }}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick Suggestion Cards -->
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card mb-3 suggestion-card" onclick="suggestQuery('How do I troubleshoot packet loss in a network?')">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-question-circle me-2 text-primary"></i>Troubleshooting</h5>
+                            <p class="card-text">How do I troubleshoot packet loss in a network?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card mb-3 suggestion-card" onclick="suggestQuery('Explain OSPF routing protocol and its advantages')">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-book me-2 text-success"></i>Learning</h5>
+                            <p class="card-text">Explain OSPF routing protocol and its advantages</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card mb-3 suggestion-card" onclick="suggestQuery('Best practices for securing a corporate network')">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-shield-alt me-2 text-warning"></i>Best Practices</h5>
+                            <p class="card-text">Best practices for securing a corporate network</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading spinner -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 mb-0">Processing your question...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// Configure marked options
+marked.setOptions({
+    renderer: new marked.Renderer(),
+    highlight: function(code, lang) {
+        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+        return hljs.highlight(code, { language }).value;
+    },
+    langPrefix: 'hljs language-',
+    pedantic: false,
+    gfm: true,
+    breaks: true,
+    sanitize: false,
+    smartypants: false,
+    xhtml: false
+});
+
+// Form submission and loading modal
+document.getElementById('chatForm')?.addEventListener('submit', function() {
+    new bootstrap.Modal(document.getElementById('loadingModal')).show();
+    
+    // Set current time for messages
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const timeString = `Today, ${hours}:${minutes}`;
+    
+    // Store the time in localStorage to retrieve after page reload
+    localStorage.setItem('lastMessageTime', timeString);
+});
+
+// Function to handle suggestion clicks
+function suggestQuery(query) {
+    const queryField = document.getElementById('security_query');
+    if (queryField) {
+        queryField.value = query;
+        queryField.focus();
+    }
+}
+
+// Function to format code blocks in the response
+function formatResponseContent() {
+    const responseElement = document.getElementById('formattedResponse');
+    if (!responseElement) return;
+    
+    // Get the raw response text
+    const rawResponse = responseElement.textContent || responseElement.innerText;
+    
+    // Convert markdown to HTML using marked
+    const formattedHtml = marked.parse(rawResponse);
+    
+    // Apply additional custom formatting
+    let enhancedHtml = formattedHtml;
+    
+    // Format command output sections (if not already formatted by marked)
+    enhancedHtml = enhancedHtml.replace(/<p>\$\s+(.*?)<br>([\s\S]*?)(?=<\/p>)/g, 
+        '<div class="command-output"><pre>$ $1\n$2</pre></div>');
+    
+    // Format note and warning boxes (if not already formatted by marked)
+    enhancedHtml = enhancedHtml.replace(/<p>NOTE:([\s\S]*?)(?=<\/p>)/g, 
+        '<div class="note-box">$1</div>');
+    enhancedHtml = enhancedHtml.replace(/<p>WARNING:([\s\S]*?)(?=<\/p>)/g, 
+        '<div class="warning-box">$1</div>');
+    
+    // Set the formatted HTML
+    responseElement.innerHTML = enhancedHtml;
+    
+    // Apply syntax highlighting to any code blocks
+    document.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightElement(block);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Scroll chat to bottom
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Set message times
+    const savedTime = localStorage.getItem('lastMessageTime');
+    if (savedTime) {
+        const userTimeElement = document.getElementById('userMessageTime');
+        const assistantTimeElement = document.getElementById('assistantMessageTime');
+        
+        if (userTimeElement) userTimeElement.textContent = savedTime;
+        if (assistantTimeElement) assistantTimeElement.textContent = savedTime;
+        
+        // Clear the saved time after using it
+        localStorage.removeItem('lastMessageTime');
+    }
+    
+    // Format response content
+    formatResponseContent();
+    
+    // Auto-resize textarea
+    const textarea = document.getElementById('security_query');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (this.scrollHeight > 200) {
+                this.style.height = '200px';
+            }
+        });
+    }
+});
+
+// PDF Report Generation
+document.getElementById('downloadReport')?.addEventListener('click', async function() {
+    try {
+        // Show loading indicator
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        loadingModal.show();
+
+        // Create a hidden container for the report
+        const reportContainer = document.createElement('div');
+        reportContainer.style.position = 'absolute';
+        reportContainer.style.left = '-9999px';
+        reportContainer.style.top = '0';
+        reportContainer.style.width = '800px';
+        document.body.appendChild(reportContainer);
+
+        // Add professional report header
+        reportContainer.innerHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 40px; background: white;">
+                <!-- Header Section -->
+                <div style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #1a237e;">
+                    <img src="{% static 'img/AISA.jpeg' %}" alt="AISA Logo" 
+                         style="width: 150px; height: 150px; margin-bottom: 20px; border-radius: 10px;">
+                    <h1 style="color: #1a237e; font-size: 28px; margin: 20px 0 10px;">Network Analysis Report</h1>
+                    <p style="color: #666; font-size: 14px; margin: 0;">
+                        Generated on ${new Date().toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}
+                    </p>
+                </div>
+
+                <!-- Executive Summary -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h2 style="color: #1a237e; font-size: 20px; margin-bottom: 15px;">Executive Summary</h2>
+                    <p style="color: #333; font-size: 14px; line-height: 1.6;">
+                        This report contains a detailed conversation history with the AI Network Analyst Assistant,
+                        including technical discussions, troubleshooting steps, and network analysis insights.
+                    </p>
+                </div>
+
+                <!-- Table of Contents -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: #1a237e; font-size: 20px; margin-bottom: 15px;">Contents</h2>
+                    <div style="font-size: 14px; line-height: 1.6;">
+                        1. Executive Summary<br>
+                        2. Conversation History<br>
+                        3. Technical Details<br>
+                        4. Conclusions
+                    </div>
+                </div>
+
+                <!-- Conversation History Section -->
+                <div style="margin-bottom: 40px;">
+                    <h2 style="color: #1a237e; font-size: 20px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #dee2e6;">
+                        Conversation History
+                    </h2>
+                    <div id="conversationContent" style="margin-top: 20px;">
+        `;
+
+        // Get chat messages
+        const chatContainer = document.getElementById('chatContainer');
+        const messages = Array.from(chatContainer.getElementsByClassName('message'));
+
+        // Process each message
+        const processedMessages = messages.map((msg, index) => {
+            const isUser = msg.classList.contains('message-user');
+            const messageTime = msg.querySelector('.message-time')?.textContent || '';
+            let messageContent = msg.cloneNode(true);
+
+            // Process code blocks if any
+            const codeBlocks = messageContent.querySelectorAll('pre code');
+            codeBlocks.forEach(code => {
+                code.style.fontFamily = 'Courier New, monospace';
+                code.style.fontSize = '12px';
+                code.style.padding = '10px';
+                code.style.backgroundColor = '#2d2d2d';
+                code.style.color = '#ffffff';
+                code.style.borderRadius = '4px';
+                code.style.display = 'block';
+                code.style.whiteSpace = 'pre-wrap';
+                code.style.marginTop = '10px';
+                code.style.marginBottom = '10px';
+            });
+
+            return `
+                <div style="margin-bottom: 25px; ${isUser ? 'margin-left: 20%;' : 'margin-right: 20%;'}">
+                    <div style="background: ${isUser ? '#e3f2fd' : '#f5f5f5'};
+                                padding: 15px;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                position: relative;">
+                        <div style="font-size: 14px; color: #333; line-height: 1.6;">
+                            ${messageContent.innerHTML}
+                        </div>
+                        <div style="font-size: 12px; color: #666; text-align: right; margin-top: 8px;">
+                            ${messageTime}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add messages to report
+        reportContainer.querySelector('#conversationContent').innerHTML = processedMessages;
+
+        // Add footer
+        reportContainer.innerHTML += `
+                </div>
+                <!-- Technical Details Section -->
+                <div style="margin-bottom: 40px;">
+                    <h2 style="color: #1a237e; font-size: 20px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #dee2e6;">
+                        Technical Details
+                    </h2>
+                    <div style="font-size: 14px; color: #333; line-height: 1.6;">
+                        <p>This conversation includes:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Network configuration discussions</li>
+                            <li>Troubleshooting steps</li>
+                            <li>Security recommendations</li>
+                            <li>Best practices</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #1a237e; text-align: center;">
+                    <p style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                        Generated by AI Network Analyst Assistant
+                    </p>
+                    <p style="color: #666; font-size: 12px;">
+                        © ${new Date().getFullYear()} AISA - All rights reserved
+                    </p>
+                </div>
+            </div>
+        `;
+
+        // Convert to PDF
+        const canvas = await html2canvas(reportContainer, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            windowWidth: 800,
+            height: reportContainer.scrollHeight
+        });
+
+        // Remove temporary container
+        document.body.removeChild(reportContainer);
+
+        // Create PDF with better quality
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            compress: true,
+            hotfixes: ['px_scaling']
+        });
+
+        // Calculate dimensions
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // Add pages
+        let heightLeft = imgHeight;
+        let position = 0;
+        let pageNumber = 1;
+
+        // First page
+        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+        pdf.setFontSize(10);
+        pdf.setTextColor(100);
+        pdf.text(`Page ${pageNumber}`, imgWidth / 2, pageHeight - 10, { align: 'center' });
+
+        // Additional pages if needed
+        while (heightLeft >= pageHeight) {
+            pageNumber++;
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+            pdf.text(`Page ${pageNumber}`, imgWidth / 2, pageHeight - 10, { align: 'center' });
+            heightLeft -= pageHeight;
+        }
+
+        // Save PDF with timestamp
+        const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+        pdf.save(`AISA_Network_Analysis_Report_${timestamp}.pdf`);
+
+        // Hide loading indicator
+        loadingModal.hide();
+
+    } catch (error) {
+        console.error('PDF Generation Error:', error);
+        console.log(error.stack);
+        alert('Error generating PDF report. Please check console for details.');
+        const loadingModal = document.getElementById('loadingModal');
+        if (loadingModal) {
+            bootstrap.Modal.getInstance(loadingModal).hide();
+        }
+    }
+});
+</script>
+{% endblock %}
