@@ -1,0 +1,5 @@
+2025-04-01 14:12:24,103 - INFO - Starting attack detection on windows
+2025-04-01 14:12:24,106 - INFO - Using interface: {31D5C45C-9730-48A4-BC34-E24591F3C878}
+2025-04-01 14:12:24,110 - INFO - KNN model loaded successfully.
+2025-04-01 14:12:24,179 - INFO - Starting detection.
+2025-04-01 14:12:24,192 - ERROR - Error during packet capture: Error opening adapter: The filename, directory name, or volume label syntax is incorrect.  (123)

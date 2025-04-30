@@ -1,0 +1,2 @@
+2025-04-01 14:27:06,392 - INFO - Starting attack detection on windows
+2025-04-01 14:27:06,393 - ERROR - Import error: cannot import name 'pcapdnet' from 'scapy.arch' (C:\Users\D E L L\AppData\Local\Programs\Python\Python312\Lib\site-packages\scapy\arch\__init__.py)
