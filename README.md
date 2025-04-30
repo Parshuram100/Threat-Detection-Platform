@@ -11,20 +11,21 @@ A comprehensive network security platform built with Django that provides real-t
    - Source/destination IP tracking
    - Protocol and port monitoring
 
-2. **Anomaly Detection**
+2. **Anomaly and Signature Detection**
    - AI-driven threat detection
    - Real-time anomaly analysis
    - Severity-based threat classification
    - Threat visualization and statistics
    - Threat resolution tracking
 
-3. **Security Tools**
-   - Port scanning capabilities
-   - PCAP file analysis
-   - Network traffic analysis
-   - Security report generation
-   - Scan history tracking
-
+3. AI Network Assistance 
+   -   AI Powered Network Assistance (Troubleshooting) 
+   -   end to end Gimini Integrated
+     
+4. Malware Analysis
+   - Malware Fine Analysis (Binary )
+   - Virusl Total Integrated
+   - Analysis Report Generate 
 ## Tech Stack
 
 - Backend: Django, Django Channels
